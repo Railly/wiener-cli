@@ -180,3 +180,32 @@ export interface CanvasFolder {
   parent_folder_id?: number;
   updated_at: string;
 }
+
+export interface CanvasConversationParticipant {
+  id: number;
+  name: string;
+}
+
+export interface CanvasConversationMessage {
+  id: number;
+  created_at: string;
+  body: string;
+  author_id: number;
+  generated?: boolean;
+}
+
+export interface CanvasConversation {
+  id: number;
+  subject?: string;
+  workflow_state: string;
+  last_message?: string;
+  last_message_at?: string;
+  message_count: number;
+  subscribed?: boolean;
+  private?: boolean;
+  starred?: boolean;
+  participants?: CanvasConversationParticipant[];
+  context_name?: string;
+  unread_count?: number;
+  messages?: CanvasConversationMessage[];
+}
