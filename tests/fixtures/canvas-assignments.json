@@ -1,0 +1,71 @@
+[
+  {
+    "id": 964446,
+    "name": "Informe semanal UD2",
+    "description": "<p>Entregue su informe semanal de la Unidad 2.</p>",
+    "due_at": "2026-04-27T23:00:00Z",
+    "points_possible": 20,
+    "submission_types": ["online_upload"],
+    "workflow_state": "published",
+    "html_url": "https://campus.uwiener.edu.pe/courses/131067/assignments/964446",
+    "course_id": 131067,
+    "submission": {
+      "id": 5001,
+      "assignment_id": 964446,
+      "user_id": 9001,
+      "submitted_at": null,
+      "graded_at": null,
+      "score": null,
+      "grade": null,
+      "workflow_state": "unsubmitted",
+      "late": false,
+      "missing": true
+    }
+  },
+  {
+    "id": 964447,
+    "name": "Foro: ética científica",
+    "description": "<p>Participe en el foro sobre ética en la investigación científica.</p>",
+    "due_at": "2026-04-27T23:59:00Z",
+    "points_possible": 15,
+    "submission_types": ["discussion_topic"],
+    "workflow_state": "published",
+    "html_url": "https://campus.uwiener.edu.pe/courses/131067/assignments/964447",
+    "course_id": 131067,
+    "submission": {
+      "id": 5002,
+      "assignment_id": 964447,
+      "user_id": 9001,
+      "submitted_at": "2026-04-26T18:00:00Z",
+      "graded_at": null,
+      "score": null,
+      "grade": null,
+      "workflow_state": "submitted",
+      "late": false,
+      "missing": false
+    }
+  },
+  {
+    "id": 964448,
+    "name": "Práctica calificada 1",
+    "description": "<p>Resolver ejercicios de la práctica 1.</p>",
+    "due_at": "2026-04-20T22:00:00Z",
+    "points_possible": 20,
+    "submission_types": ["online_upload"],
+    "workflow_state": "published",
+    "html_url": "https://campus.uwiener.edu.pe/courses/131067/assignments/964448",
+    "course_id": 131067,
+    "submission": {
+      "id": 5003,
+      "assignment_id": 964448,
+      "user_id": 9001,
+      "submitted_at": "2026-04-20T21:00:00Z",
+      "graded_at": "2026-04-21T10:00:00Z",
+      "score": 17,
+      "grade": "17",
+      "workflow_state": "graded",
+      "late": false,
+      "missing": false
+    }
+  }
+]

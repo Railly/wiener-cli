@@ -1,0 +1,46 @@
+[
+  {
+    "course_id": 131067,
+    "context_type": "Course",
+    "context_name": "TERAPÉUTICA FARMACOLÓGICA III",
+    "plannable_id": 964446,
+    "plannable_type": "assignment",
+    "plannable_date": "2026-04-27T23:00:00Z",
+    "plannable": {
+      "id": 964446,
+      "title": "Informe semanal UD2",
+      "due_at": "2026-04-27T23:00:00Z",
+      "points_possible": 20,
+      "course_id": 131067
+    },
+    "planner_override": null,
+    "submissions": {
+      "submitted": false,
+      "graded": false,
+      "missing": true
+    },
+    "new_activity": false
+  },
+  {
+    "course_id": 131072,
+    "context_type": "Course",
+    "context_name": "CIENCIA Y DESCUBRIMIENTO",
+    "plannable_id": 964449,
+    "plannable_type": "assignment",
+    "plannable_date": "2026-04-28T22:00:00Z",
+    "plannable": {
+      "id": 964449,
+      "title": "Ensayo: método científico",
+      "due_at": "2026-04-28T22:00:00Z",
+      "points_possible": 10,
+      "course_id": 131072
+    },
+    "planner_override": null,
+    "submissions": {
+      "submitted": false,
+      "graded": false,
+      "missing": false
+    },
+    "new_activity": true
+  }
+]

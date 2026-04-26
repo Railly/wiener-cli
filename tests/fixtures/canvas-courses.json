@@ -1,0 +1,52 @@
+[
+  {
+    "id": 131067,
+    "name": "TERAPÉUTICA FARMACOLÓGICA III-T",
+    "course_code": "FB6N1",
+    "workflow_state": "available",
+    "enrollment_term_id": 42,
+    "term": { "id": 42, "name": "2026-I" },
+    "enrollments": [{ "type": "StudentEnrollment", "role": "StudentEnrollment" }],
+    "calendar": { "ics": "https://campus.uwiener.edu.pe/feeds/calendars/course_abcxyz.ics" }
+  },
+  {
+    "id": 131068,
+    "name": "TERAPÉUTICA FARMACOLÓGICA III-P1",
+    "course_code": "FB6N1",
+    "workflow_state": "available",
+    "enrollment_term_id": 42,
+    "term": { "id": 42, "name": "2026-I" },
+    "enrollments": [{ "type": "StudentEnrollment", "role": "StudentEnrollment" }],
+    "calendar": { "ics": "https://campus.uwiener.edu.pe/feeds/calendars/course_defghi.ics" }
+  },
+  {
+    "id": 131070,
+    "name": "LABORATORIO Y DIAGNÓSTICO II-T",
+    "course_code": "FB6M4",
+    "workflow_state": "available",
+    "enrollment_term_id": 42,
+    "term": { "id": 42, "name": "2026-I" },
+    "enrollments": [{ "type": "StudentEnrollment", "role": "StudentEnrollment" }],
+    "calendar": { "ics": "https://campus.uwiener.edu.pe/feeds/calendars/course_jklmno.ics" }
+  },
+  {
+    "id": 131071,
+    "name": "LABORATORIO Y DIAGNÓSTICO II-PD",
+    "course_code": "FB6M4",
+    "workflow_state": "available",
+    "enrollment_term_id": 42,
+    "term": { "id": 42, "name": "2026-I" },
+    "enrollments": [{ "type": "StudentEnrollment", "role": "StudentEnrollment" }],
+    "calendar": { "ics": "https://campus.uwiener.edu.pe/feeds/calendars/course_pqrstu.ics" }
+  },
+  {
+    "id": 131072,
+    "name": "CIENCIA Y DESCUBRIMIENTO-T",
+    "course_code": "AC6M28",
+    "workflow_state": "available",
+    "enrollment_term_id": 42,
+    "term": { "id": 42, "name": "2026-I" },
+    "enrollments": [{ "type": "StudentEnrollment", "role": "StudentEnrollment" }],
+    "calendar": { "ics": "https://campus.uwiener.edu.pe/feeds/calendars/course_vwxyz1.ics" }
+  }
+]

@@ -1,0 +1,60 @@
+[
+  {
+    "id": 8001,
+    "subject": "Consulta sobre Práctica 2",
+    "workflow_state": "unread",
+    "last_message": "Claro, puede entregar hasta el lunes.",
+    "last_message_at": "2026-04-25T14:00:00Z",
+    "message_count": 3,
+    "subscribed": true,
+    "private": true,
+    "starred": false,
+    "participants": [
+      { "id": 9001, "name": "Alumno Test" },
+      { "id": 1001, "name": "Prof. García, Luis" }
+    ],
+    "context_name": "LABORATORIO Y DIAGNÓSTICO II",
+    "unread_count": 1,
+    "messages": [
+      {
+        "id": 20001,
+        "created_at": "2026-04-24T10:00:00Z",
+        "body": "Profesor, ¿puedo entregar la práctica 2 con retraso?",
+        "author_id": 9001,
+        "generated": false
+      },
+      {
+        "id": 20002,
+        "created_at": "2026-04-25T14:00:00Z",
+        "body": "Claro, puede entregar hasta el lunes.",
+        "author_id": 1001,
+        "generated": false
+      }
+    ]
+  },
+  {
+    "id": 8002,
+    "subject": "Cambio de aula",
+    "workflow_state": "read",
+    "last_message": "La clase del jueves será en Aula 305.",
+    "last_message_at": "2026-04-23T09:00:00Z",
+    "message_count": 1,
+    "subscribed": true,
+    "private": false,
+    "starred": false,
+    "participants": [
+      { "id": 1002, "name": "Prof. Pérez, {REDACTED_NAME}" }
+    ],
+    "context_name": "CIENCIA Y DESCUBRIMIENTO",
+    "unread_count": 0,
+    "messages": [
+      {
+        "id": 20003,
+        "created_at": "2026-04-23T09:00:00Z",
+        "body": "La clase del jueves será en Aula 305.",
+        "author_id": 1002,
+        "generated": false
+      }
+    ]
+  }
+]

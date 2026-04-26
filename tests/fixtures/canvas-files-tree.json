@@ -1,0 +1,84 @@
+{
+  "folders": [
+    {
+      "id": 3001,
+      "name": "course files",
+      "full_name": "course files",
+      "context_id": 131067,
+      "context_type": "Course",
+      "parent_folder_id": null,
+      "files_count": 1,
+      "folders_count": 2,
+      "files_url": "https://campus.uwiener.edu.pe/api/v1/folders/3001/files",
+      "folders_url": "https://campus.uwiener.edu.pe/api/v1/folders/3001/folders",
+      "created_at": "2026-03-01T00:00:00Z",
+      "updated_at": "2026-04-20T00:00:00Z"
+    },
+    {
+      "id": 3002,
+      "name": "Semana 1",
+      "full_name": "course files/Semana 1",
+      "context_id": 131067,
+      "context_type": "Course",
+      "parent_folder_id": 3001,
+      "files_count": 2,
+      "folders_count": 0,
+      "files_url": "https://campus.uwiener.edu.pe/api/v1/folders/3002/files",
+      "folders_url": "https://campus.uwiener.edu.pe/api/v1/folders/3002/folders",
+      "created_at": "2026-03-05T00:00:00Z",
+      "updated_at": "2026-03-10T00:00:00Z"
+    },
+    {
+      "id": 3003,
+      "name": "Semana 2",
+      "full_name": "course files/Semana 2",
+      "context_id": 131067,
+      "context_type": "Course",
+      "parent_folder_id": 3001,
+      "files_count": 1,
+      "folders_count": 0,
+      "files_url": "https://campus.uwiener.edu.pe/api/v1/folders/3003/files",
+      "folders_url": "https://campus.uwiener.edu.pe/api/v1/folders/3003/folders",
+      "created_at": "2026-03-12T00:00:00Z",
+      "updated_at": "2026-03-20T00:00:00Z"
+    }
+  ],
+  "files": [
+    {
+      "id": 7001,
+      "content-type": "application/pdf",
+      "url": "https://campus.uwiener.edu.pe/files/7001/download?download_frd=1",
+      "size": 2048576,
+      "display_name": "Tema-01-farmacocinetica.pdf",
+      "filename": "Tema-01-farmacocinetica.pdf",
+      "folder_id": 3002,
+      "created_at": "2026-03-05T08:00:00Z",
+      "updated_at": "2026-03-05T08:00:00Z",
+      "modified_at": "2026-03-05T08:00:00Z"
+    },
+    {
+      "id": 7002,
+      "content-type": "application/vnd.ms-powerpoint",
+      "url": "https://campus.uwiener.edu.pe/files/7002/download?download_frd=1",
+      "size": 5242880,
+      "display_name": "Diapositivas-Clase1.pptx",
+      "filename": "Diapositivas-Clase1.pptx",
+      "folder_id": 3002,
+      "created_at": "2026-03-05T09:00:00Z",
+      "updated_at": "2026-03-05T09:00:00Z",
+      "modified_at": "2026-03-05T09:00:00Z"
+    },
+    {
+      "id": 7003,
+      "content-type": "application/pdf",
+      "url": "https://campus.uwiener.edu.pe/files/7003/download?download_frd=1",
+      "size": 3145728,
+      "display_name": "Tema-02-farmacodinamia.pdf",
+      "filename": "Tema-02-farmacodinamia.pdf",
+      "folder_id": 3003,
+      "created_at": "2026-03-15T08:00:00Z",
+      "updated_at": "2026-04-20T08:00:00Z",
+      "modified_at": "2026-04-20T08:00:00Z"
+    }
+  ]
+}

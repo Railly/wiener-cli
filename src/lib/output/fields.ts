@@ -30,3 +30,18 @@ export function parseFields(fieldsFlag: string | undefined): string[] {
     .map((f) => f.trim())
     .filter(Boolean);
 }
+
+export function projectFields<T extends Record<string, unknown>>(
+  data: T,
+  fields: string | undefined,
+): Partial<T> {
+  if (!fields) return data;
+  const keys = fields.split(",").map((k) => k.trim());
+  const result: Partial<T> = {};
+  for (const key of keys) {
+    if (key in data) {
+      result[key as keyof T] = data[key as keyof T];
+    }
+  }
+  return result;
+}

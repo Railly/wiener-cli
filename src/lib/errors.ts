@@ -35,12 +35,22 @@ export class WienerError extends Error {
   readonly details?: unknown;
   readonly exitCode: number;
 
-  constructor(code: WienerErrorCode, message: string, opts?: { hint?: string; details?: unknown }) {
+  constructor(
+    code: WienerErrorCode,
+    message: string,
+    optsOrHint?: { hint?: string; details?: unknown } | string,
+    legacyDetails?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "WienerError";
     this.code = code;
-    this.hint = opts?.hint;
-    this.details = opts?.details;
+    if (typeof optsOrHint === "string") {
+      this.hint = optsOrHint;
+      this.details = legacyDetails;
+    } else {
+      this.hint = optsOrHint?.hint;
+      this.details = optsOrHint?.details;
+    }
     this.exitCode = ERROR_EXIT_CODES[code] ?? 1;
   }
 }
@@ -144,4 +154,28 @@ export function isWienerLike(e: unknown): e is WienerError {
     typeof (e as Record<string, unknown>)["code"] === "string" &&
     typeof (e as Record<string, unknown>)["message"] === "string"
   );
+}
+
+export function toErrorEnvelope(e: unknown): {
+  ok: false;
+  error: { code: string; message: string; hint?: string; details?: Record<string, unknown> };
+} {
+  if (isWienerError(e)) {
+    return {
+      ok: false,
+      error: {
+        code: e.code,
+        message: e.message,
+        ...(e.hint ? { hint: e.hint } : {}),
+        ...(e.details && typeof e.details === "object"
+          ? { details: e.details as Record<string, unknown> }
+          : {}),
+      },
+    };
+  }
+  const message = e instanceof Error ? e.message : String(e);
+  return {
+    ok: false,
+    error: { code: "network-error", message },
+  };
 }
