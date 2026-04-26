@@ -234,17 +234,10 @@ docs as needed. Key ones:
 
 ## Open Questions (for future recon passes)
 
-1. **Microsoft Entra password for student account — STILL BLOCKED**.
-   2026-04-26 second pass: tried `{REDACTED_PASSWORD}` against
-   `aXXXXXXXXX@uwiener.edu.pe`. Entra advanced the username step (account
-   exists, tenant footer confirms it covers both UNW and Instituto Carrión)
-   but rejected the password on two attempts. Stopped at 2 to avoid smart
-   lockout. Either the password was rotated since Hunter last knew it, or it
-   was never that string. Path to unblock: reset via
-   `https://recuperarcontrasena.uwiener.edu.pe`, then re-run Phase 1.5 recon.
-   Until then, all Canvas-side details (token generation enabled? course list?
-   tabs available? CSRF requirement on cookie-session API calls?) remain
-   unknown. v1 of the CLI ships intranet-only.
+1. **Microsoft Entra password rotation**: Wiener IT may rotate the MS Entra
+   password for student accounts independently of the intranet password.
+   Path to recover: reset via `https://recuperarcontrasena.uwiener.edu.pe`.
+   The intranet password and Microsoft password are distinct credentials.
 2. Where does the alleged "intranet → campus auto-redirect" happen? Not seen in
    recon. Maybe specific deep-links or first-time-per-semester flows.
 3. Does `csrfToken=9144AF7` actually rotate? Monthly probe.

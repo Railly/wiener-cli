@@ -17,7 +17,7 @@ function makePanorama(overrides: Partial<Panorama> = {}): Panorama {
       type: "Remoto-Videoconf",
       room: "Virtual",
       building: "Online",
-      teacher: "Pérez, {REDACTED_NAME}",
+      teacher: "Pérez, María",
     },
     proximo: {
       time_start: "11:30",

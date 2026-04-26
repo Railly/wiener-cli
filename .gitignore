@@ -16,3 +16,4 @@ bin/wiener-linux
 
 .wiener/
 audit.jsonl
+a11y/

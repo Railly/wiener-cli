@@ -69,10 +69,10 @@ Hoy — Lunes 27 abril 2026
 ─────────────────────────
 
   Ahora        ─ AC6M28 · CIENCIA Y DESCUBRIMIENTO
-                 07:00 - 10:00 · Remoto-Videoconf · Prof. Pérez, {REDACTED_NAME}
+                 07:00 - 10:00 · Remoto-Videoconf · Prof. {Apellido}, {Nombre}
 
   Próximo      ─ FB6M4 · LABORATORIO Y DIAGNÓSTICO II  (en 1h 23m)
-                 11:30 - 14:00 · Aula 305 · Prof. García, Luis
+                 11:30 - 14:00 · Aula 305 · Prof. {Apellido2}, {Nombre2}
 
 Pendiente hoy
 ─────────────
