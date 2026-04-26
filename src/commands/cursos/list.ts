@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { getActiveCoursesWithToken as getActiveCourses } from "../../lib/api/canvas/courses.js";
 import { loadCanvasSession } from "../../lib/auth/store.js";
 import { getProfileAliases } from "../../lib/courses/alias-store.js";
-import { generateAliasMap } from "../../lib/courses/auto-alias.js";
+import { generateAliasMapByCodeName } from "../../lib/courses/auto-alias.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import type { WienerError } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
@@ -44,18 +44,23 @@ export function registerCursosList(cursosCmd: Command): void {
       try {
         const rawCourses = await getActiveCourses(session.token);
         const customAliases = getProfileAliases(profile);
-        const autoAliases = generateAliasMap(
+        const autoAliases = generateAliasMapByCodeName(
           rawCourses.map((c) => ({ code: c.course_code, name: c.name })),
         );
         const aliasMap = { ...autoAliases, ...customAliases };
 
         if (opts.all) {
+          const allLogical = groupBySection(rawCourses, aliasMap);
+          const aliasById = new Map<string, string>();
+          for (const l of allLogical) {
+            for (const s of l.secciones) aliasById.set(s.id, l.alias);
+          }
           const data = {
             cursos: rawCourses.map((c) => ({
               id: c.id,
               code: c.course_code,
               name: c.name,
-              alias: aliasMap[c.course_code] ?? c.course_code.toLowerCase(),
+              alias: aliasById.get(c.id) ?? c.course_code.toLowerCase(),
               term: c.term?.name,
               role: c.enrollments?.[0]?.role,
             })),
