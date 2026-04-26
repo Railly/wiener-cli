@@ -4,10 +4,17 @@ import { isInteractive } from "../tty.ts";
 
 export type ConfirmResult = "proceed" | "dry-run" | "aborted";
 
+export type TrustLevel = "T0" | "T1" | "T2" | "T3";
+
 export interface ConfirmT2Options {
   yes: boolean;
   dryRun: boolean;
   noInput?: boolean;
+}
+
+export interface ConfirmT3Options extends ConfirmT2Options {
+  confirm?: string;
+  confirmAgainst?: string;
 }
 
 /**
@@ -56,4 +63,33 @@ export async function confirmT2(
   }
 
   return "proceed";
+}
+
+/**
+ * T3 confirmation harness. Requires --yes AND --confirm <id> matching confirmAgainst.
+ * Use for irreversible operations where the user must demonstrate intent.
+ */
+export async function confirmT3(
+  action: string,
+  preview: string,
+  opts: ConfirmT3Options,
+): Promise<ConfirmResult> {
+  if (opts.dryRun) {
+    return "dry-run";
+  }
+
+  // T3 requires explicit confirm-against-id match
+  if (opts.yes && opts.confirmAgainst) {
+    if (!opts.confirm || opts.confirm !== opts.confirmAgainst) {
+      throw new WienerError(
+        "validation-error",
+        `T3 action requires --confirm ${opts.confirmAgainst}: ${action}`,
+        `Pass --yes --confirm ${opts.confirmAgainst} to confirm.`,
+      );
+    }
+    return "proceed";
+  }
+
+  // Fall back to T2 behavior
+  return confirmT2(action, preview, opts);
 }
