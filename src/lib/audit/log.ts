@@ -1,6 +1,5 @@
-import { appendFileSync, mkdirSync } from "node:fs";
-import path from "node:path";
-import { getConfigDir } from "../env.js";
+import { getWienerPaths } from "../foundation/xdg-paths.js";
+import { audit } from "../foundation/audit-log.js";
 
 export type TrustLevel = "T0" | "T2";
 
@@ -13,15 +12,21 @@ export interface AuditEntry {
   result?: "ok" | "error";
   error_code?: string;
   duration_ms?: number;
+  [key: string]: unknown;
 }
 
 export function auditLog(entry: AuditEntry): void {
   try {
-    const dir = getConfigDir();
-    mkdirSync(dir, { recursive: true });
-    const filePath = path.join(dir, "audit.jsonl");
-    const line = `${JSON.stringify({ ...entry, ts: entry.ts ?? new Date().toISOString() })}\n`;
-    appendFileSync(filePath, line, "utf-8");
+    const paths = getWienerPaths();
+    const { ts: _ts, command, result, trust, profile, ...rest } = entry;
+    audit(paths.audit, {
+      kind: command,
+      command,
+      result: (result ?? "ok") as "ok" | "error" | "blocked" | "dry-run",
+      tier: trust,
+      profile,
+      meta: rest,
+    });
   } catch {
     // Audit log failure is non-fatal
   }

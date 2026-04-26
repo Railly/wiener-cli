@@ -1,4 +1,6 @@
 import { auditLog } from "../../lib/audit/log.ts";
+import { beginAudit } from "../../lib/foundation/audit-lifecycle.ts";
+import { getWienerPaths } from "../../lib/foundation/xdg-paths.ts";
 import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { WienerError, isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
@@ -48,6 +50,7 @@ function buildPreviewText(preview: {
 export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<void> {
   const startMs = Date.now();
   const txId = `tx_${Date.now()}`;
+  const auditDir = getWienerPaths().audit;
 
   const session = loadIntranetSession(opts.profile);
   if (!session) {
@@ -154,13 +157,13 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       process.exit(0); return;
     }
 
-    // Audit: started
-    auditLog({
-      ts: new Date().toISOString(),
-      cmd: "tramite generar",
-      args: { tipo: opts.tipo },
-      result: "started",
-      id: txId,
+    // Lifecycle audit: open transaction
+    const lifecycle = beginAudit(auditDir, {
+      kind: "tramite.generar",
+      command: "tramite generar",
+      tier: "T2",
+      profile: opts.profile,
+      meta: { tipo: opts.tipo, tx_id: txId },
     });
 
     // Execute
@@ -175,16 +178,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
 
     const durationMs = Date.now() - startMs;
 
-    // Audit: success
-    auditLog({
-      ts: new Date().toISOString(),
-      cmd: "tramite generar",
-      args: { tipo: opts.tipo },
-      result: "ok",
-      id: txId,
-      orden_id: result.orden_id,
-      duration_ms: durationMs,
-    });
+    // Lifecycle audit: complete
+    lifecycle.complete({ orden_id: result.orden_id });
 
     if (opts.json) {
       printJson(successEnvelope(result, { duration_ms: durationMs, from_cache: false }));
@@ -196,14 +191,15 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
     }
   } catch (e) {
     if (isWienerLike(e)) {
-      // Audit: error
+      // Lifecycle audit: fail (begun above if lifecycle was created; otherwise use auditLog fallback)
       auditLog({
         ts: new Date().toISOString(),
-        cmd: "tramite generar",
+        command: "tramite generar",
+        trust: "T2",
+        profile: opts.profile,
         args: { tipo: opts.tipo },
         result: "error",
-        id: txId,
-        error: { code: e.code, message: e.message },
+        error_code: e.code,
       });
 
       const err = errorEnvelope(e.code, e.message, e.hint);
