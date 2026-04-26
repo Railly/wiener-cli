@@ -1,15 +1,15 @@
 import { createWriteStream, existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
+import pc from "picocolors";
+import type { CanvasFile } from "../../lib/api/canvas/files.ts";
+import { listAllFiles } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
-import { WienerError, isWienerLike } from "../../lib/errors.ts";
+import { isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
-import type { CanvasFile } from "../../lib/api/canvas/files.ts";
-import { listAllFiles } from "../../lib/api/canvas/files.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
-import pc from "picocolors";
 
 const DEFAULT_MAX_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 const DEFAULT_CONCURRENCY = 4;
@@ -160,7 +160,8 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
         printError(`[validation-error] Total size ${formatSize(totalSize)} exceeds limit.`);
         printLine(pc.dim(`Hint: Use --max-size ${Math.ceil(totalSize / 1024 / 1024)}.`));
       }
-      process.exit(1); return;
+      process.exit(1);
+      return;
     }
 
     // Build manifest
@@ -192,11 +193,11 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
       pc.dim("Continúa con --yes."),
     ].join("\n");
 
-    const decision = await confirmT2(
-      "archivos sync",
-      previewText,
-      { yes: opts.yes, dryRun: opts.dryRun, noInput: opts.noInput },
-    );
+    const decision = await confirmT2("archivos sync", previewText, {
+      yes: opts.yes,
+      dryRun: opts.dryRun,
+      noInput: opts.noInput,
+    });
 
     if (decision === "dry-run") {
       if (opts.json) {
@@ -220,7 +221,8 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
       } else {
         printLine(pc.dim("Cancelled."));
       }
-      process.exit(0); return;
+      process.exit(0);
+      return;
     }
 
     if (!opts.json) {
@@ -296,7 +298,8 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
         printError(`[${e.code}] ${e.message}`);
         if (e.hint) printLine(pc.dim(`Hint: ${e.hint}`));
       }
-      process.exit(1); return;
+      process.exit(1);
+      return;
     }
     throw e;
   }

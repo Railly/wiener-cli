@@ -11,7 +11,13 @@ export type WienerErrorCode =
   | "parse-error"
   | "validation-error"
   | "not-implemented"
-  | "unknown-error";
+  | "unknown-error"
+  | "assignment-not-found"
+  | "assignment-ambiguous"
+  | "submission-locked"
+  | "submission-no-attempts"
+  | "file-not-found"
+  | "submission-invalid-extension";
 
 export const ERROR_EXIT_CODES: Record<WienerErrorCode, number> = {
   "auth-required": 1,
@@ -27,6 +33,12 @@ export const ERROR_EXIT_CODES: Record<WienerErrorCode, number> = {
   "validation-error": 2,
   "not-implemented": 1,
   "unknown-error": 1,
+  "assignment-not-found": 1,
+  "assignment-ambiguous": 1,
+  "submission-locked": 1,
+  "submission-no-attempts": 1,
+  "file-not-found": 1,
+  "submission-invalid-extension": 2,
 };
 
 export class WienerError extends Error {

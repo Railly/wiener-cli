@@ -57,6 +57,8 @@ import { runTareasInfo } from "./commands/tareas/info.js";
 // Phase C: Canvas read commands
 import { runTareasByCourse, runTareasList } from "./commands/tareas/list.js";
 import { runTareasSemana } from "./commands/tareas/semana.js";
+// Phase G: submission
+import { runTareasSubmit } from "./commands/tareas/submit.js";
 import type { SectionType } from "./types/course.js";
 
 import { registerConfig } from "./commands/config.js";
@@ -230,6 +232,48 @@ addGlobalFlags(
   const g = parseGlobalFlags(merged);
   await runTareasInfo(String(assignmentId), { ...g, curso: merged.curso as string });
 });
+
+// Phase G: wiener tareas submit (T2)
+tareas.addCommand(
+  new Command("submit")
+    .description("Entregar una tarea a Canvas (T2 — muestra preview y pide confirmación)")
+    .argument("<ref>", "Referencia de curso (código, alias, o nombre)")
+    .argument("<assignment-ref>", "ID numérico o nombre (parcial) de la tarea")
+    .argument("[files...]", "Archivos a subir (para online_upload)")
+    .option(
+      "--type <type>",
+      "Tipo de entrega: auto|online_upload|online_text_entry|online_url",
+      "auto",
+    )
+    .option("--text <body>", "Cuerpo de texto para online_text_entry")
+    .option("--url <url>", "URL para online_url")
+    .option("--comment <text>", "Comentario adicional")
+    .option("--seccion <sec>", "Sección del curso (T, P1, P2, PD, PE)")
+    .option("--yes", "Omitir confirmación interactiva")
+    .option("--dry-run", "Previsualizar sin enviar")
+    .option("--no-input", "Forzar modo no interactivo")
+    .option("--json", "Salida como JSON envelope")
+    .option("--exact", "Course resolver: solo coincidencia exacta")
+    .option("--profile <name>", "Nombre de perfil", "default")
+    .action(async (courseRef, assignmentRef, files, opts) => {
+      await runTareasSubmit({
+        courseRef: String(courseRef),
+        assignmentRef: String(assignmentRef),
+        files: Array.isArray(files) ? files.map(String) : [],
+        type: opts.type as string | undefined,
+        text: opts.text as string | undefined,
+        url: opts.url as string | undefined,
+        comment: opts.comment as string | undefined,
+        seccion: opts.seccion as SectionType | undefined,
+        yes: Boolean(opts.yes),
+        dryRun: Boolean(opts.dryRun),
+        noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+        json: Boolean(opts.json),
+        exact: Boolean(opts.exact),
+        profile: (opts.profile as string) ?? "default",
+      });
+    }),
+);
 
 program.addCommand(tareas);
 
@@ -491,9 +535,12 @@ const canvas = new Command("canvas").description(
   "Canvas LMS commands (espejo de top-level, misma funcionalidad)",
 );
 
-addGlobalFlags(
-  canvas.command("tareas [ref]").description("Ver tareas Canvas (alias: wiener tareas)"),
-).action(async (ref, opts) => {
+const canvasTareas = addGlobalFlags(
+  new Command("tareas")
+    .description("Ver tareas Canvas (alias: wiener tareas)")
+    .argument("[ref]", "Referencia de curso"),
+);
+canvasTareas.action(async (ref, opts) => {
   const g = parseGlobalFlags(opts);
   if (ref) {
     await runTareasByCourse(String(ref), g);
@@ -501,6 +548,43 @@ addGlobalFlags(
     await runTareasList(g);
   }
 });
+canvasTareas.addCommand(
+  new Command("submit")
+    .description("Entregar una tarea a Canvas (T2)")
+    .argument("<ref>", "Referencia de curso")
+    .argument("<assignment-ref>", "ID o nombre de la tarea")
+    .argument("[files...]", "Archivos a subir")
+    .option("--type <type>", "Tipo: auto|online_upload|online_text_entry|online_url", "auto")
+    .option("--text <body>", "Cuerpo de texto")
+    .option("--url <url>", "URL")
+    .option("--comment <text>", "Comentario adicional")
+    .option("--seccion <sec>", "Sección del curso")
+    .option("--yes", "Omitir confirmación")
+    .option("--dry-run", "Preview sin enviar")
+    .option("--no-input", "Modo no interactivo")
+    .option("--json", "JSON envelope")
+    .option("--exact", "Solo coincidencia exacta")
+    .option("--profile <name>", "Perfil", "default")
+    .action(async (courseRef, assignmentRef, files, opts) => {
+      await runTareasSubmit({
+        courseRef: String(courseRef),
+        assignmentRef: String(assignmentRef),
+        files: Array.isArray(files) ? files.map(String) : [],
+        type: opts.type as string | undefined,
+        text: opts.text as string | undefined,
+        url: opts.url as string | undefined,
+        comment: opts.comment as string | undefined,
+        seccion: opts.seccion as SectionType | undefined,
+        yes: Boolean(opts.yes),
+        dryRun: Boolean(opts.dryRun),
+        noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+        json: Boolean(opts.json),
+        exact: Boolean(opts.exact),
+        profile: (opts.profile as string) ?? "default",
+      });
+    }),
+);
+canvas.addCommand(canvasTareas);
 
 addGlobalFlags(
   canvas

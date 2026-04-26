@@ -17,9 +17,9 @@
  *     ```
  */
 
+import pc from "picocolors";
 import { confirmT2 } from "../lib/safety/confirm.ts";
 import type { ConfirmResult } from "../lib/safety/confirm.ts";
-import pc from "picocolors";
 
 export interface WatchDetachOptions {
   yes: boolean;
