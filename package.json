@@ -1,22 +1,47 @@
 {
   "name": "@railly/wiener-cli",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Agent-first CLI for Universidad Norbert Wiener student portals (intranet ASP + Canvas LMS).",
+  "version": "0.2.0",
+  "description": "Agent-first CLI for Universidad Norbert Wiener student portals (intranet ASP + Canvas LMS). Surfaces what the Wiener UI hides.",
+  "keywords": [
+    "wiener",
+    "uwiener",
+    "cli",
+    "agent-first",
+    "canvas",
+    "lms",
+    "education",
+    "peru"
+  ],
+  "homepage": "https://github.com/Railly/wiener-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Railly/wiener-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Railly/wiener-cli/issues"
+  },
+  "license": "MIT",
+  "author": "Railly Hugo <hi@railly.dev>",
   "type": "module",
   "bin": {
-    "wiener": "./bin/wiener"
+    "wiener": "./dist/cli.js"
   },
-  "files": ["bin/", "dist/"],
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
-    "build": "bun build src/cli.ts --compile --outfile bin/wiener --target=bun-darwin-arm64",
-    "build:linux": "bun build src/cli.ts --compile --outfile bin/wiener-linux --target=bun-linux-x64",
+    "build": "bun build src/cli.ts --target=bun --outfile=dist/cli.js",
+    "build:bin": "bun build src/cli.ts --compile --outfile bin/wiener --target=bun-darwin-arm64",
+    "build:bin:linux": "bun build src/cli.ts --compile --outfile bin/wiener-linux --target=bun-linux-x64",
     "test": "bun test --bail",
     "test:watch": "bun test --watch",
     "test:live": "WIENER_LIVE_TEST=1 bun test tests/live/",
     "lint": "biome check .",
-    "lint:fix": "biome check --write ."
+    "lint:fix": "biome check --write .",
+    "prepublishOnly": "bun run build && bun test"
   },
   "engines": {
     "bun": ">=1.3.0"
@@ -33,5 +58,8 @@
     "@biomejs/biome": "^1.9.0",
     "@types/bun": "latest",
     "typescript": "^5.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
