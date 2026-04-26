@@ -1,26 +1,31 @@
 import type { CanvasPlannerItem } from "../../../types/canvas.js";
+import { loadCanvasSession } from "../../auth/store.js";
+import { CanvasNotConfiguredError } from "../../errors.js";
 import { canvasFetchAll } from "./client.js";
+
+async function requireCanvasToken(profile = "default"): Promise<string> {
+  const session = await loadCanvasSession(profile);
+  if (!session) throw new CanvasNotConfiguredError();
+  return session.token;
+}
 
 export async function fetchPlannerItems(opts?: {
   startDate?: string;
   endDate?: string;
   perPage?: number;
   contextCodes?: string[];
+  profile?: string;
 }): Promise<CanvasPlannerItem[]> {
-  const queryParams: Record<string, string | number | boolean | undefined> = {
-    per_page: opts?.perPage ?? 50,
-  };
-  if (opts?.startDate) queryParams.start_date = opts.startDate;
-  if (opts?.endDate) queryParams.end_date = opts.endDate;
+  const token = await requireCanvasToken(opts?.profile ?? "default");
 
-  let path = "/api/v1/planner/items";
+  const params = new URLSearchParams({ per_page: String(opts?.perPage ?? 50) });
+  if (opts?.startDate) params.set("start_date", opts.startDate);
+  if (opts?.endDate) params.set("end_date", opts.endDate);
   if (opts?.contextCodes?.length) {
-    const codes = opts.contextCodes
-      .map((c) => `context_codes[]=${encodeURIComponent(c)}`)
-      .join("&");
-    path += `?${codes}`;
+    for (const c of opts.contextCodes) params.append("context_codes[]", c);
   }
 
-  const res = await canvasFetchAll<CanvasPlannerItem>(path, { queryParams });
+  const path = `/api/v1/planner/items?${params.toString()}`;
+  const res = await canvasFetchAll<CanvasPlannerItem>(path, { token });
   return res.data;
 }

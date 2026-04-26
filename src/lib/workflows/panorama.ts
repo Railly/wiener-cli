@@ -2,6 +2,9 @@ import type { HorarioBloque } from "../../types/intranet.js";
 import { getTodo, getUpcomingEvents } from "../api/canvas/calendar.js";
 import { getActiveCourses } from "../api/canvas/courses.js";
 import { getHorarioMatriculado } from "../api/intranet/horario.js";
+import { getProfileAliases } from "../courses/alias-store.js";
+import { generateAliasMapByCodeName } from "../courses/auto-alias.js";
+import { groupBySection } from "../courses/grouping.js";
 import { loadConfig } from "../env.js";
 import type { DeltaItem } from "../state/diff.js";
 import { isStateStale, loadState, stateAgeLabel } from "../state/snapshot.js";
@@ -127,7 +130,7 @@ export async function buildPanorama(
 
   try {
     const [horario, upcomingEvents, todo] = await Promise.all([
-      getHorarioMatriculado(),
+      getHorarioMatriculado(profile),
       getUpcomingEvents(),
       getTodo(),
     ]);
@@ -139,8 +142,15 @@ export async function buildPanorama(
     proximoBloque = computed.proximo;
     etaMinutos = computed.eta;
 
-    const courses = await getActiveCourses();
-    const courseCodeMap = new Map<number, string>();
+    const rawCourses = await getActiveCourses(profile);
+    const customAliases = getProfileAliases(profile);
+    const autoAliases = generateAliasMapByCodeName(
+      rawCourses.map((c) => ({ code: c.course_code, name: c.name })),
+    );
+    const aliasMap = { ...autoAliases, ...customAliases };
+    const courses = groupBySection(rawCourses, aliasMap);
+
+    const courseCodeMap = new Map<string, string>();
     for (const c of courses) {
       for (const s of c.secciones) {
         courseCodeMap.set(s.id, c.code);
@@ -162,8 +172,7 @@ export async function buildPanorama(
       const due = new Date(dueAt);
 
       const courseIdStr = ev.context_code?.replace("course_", "") ?? "";
-      const courseId = Number(courseIdStr);
-      const curso = courseCodeMap.get(courseId) ?? courseIdStr;
+      const curso = courseCodeMap.get(courseIdStr) ?? courseIdStr;
 
       const title = ev.assignment?.name ?? (ev as { title?: string }).title ?? "Tarea";
 

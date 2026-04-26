@@ -3,6 +3,9 @@ import pc from "picocolors";
 import { getTodo, getUpcomingEvents } from "../lib/api/canvas/calendar.js";
 import { getActiveCourses } from "../lib/api/canvas/courses.js";
 import { getHorarioMatriculado } from "../lib/api/intranet/horario.js";
+import { getProfileAliases } from "../lib/courses/alias-store.js";
+import { generateAliasMapByCodeName } from "../lib/courses/auto-alias.js";
+import { groupBySection } from "../lib/courses/grouping.js";
 import { err, ok } from "../lib/output/envelope.js";
 import { emit } from "../lib/output/json.js";
 import { isColorEnabled } from "../lib/tty.js";
@@ -48,22 +51,30 @@ export function registerHoy(program: Command): void {
     .option("--profile <name>", "profile name", "default")
     .action(async (opts: { json?: boolean; profile?: string }) => {
       const t0 = Date.now();
+      const profile = opts.profile ?? "default";
       try {
         const now = new Date();
         const diaKey = DIA_MAP[now.getDay()] ?? "L";
         const diaLabel = DIA_NOMBRES[diaKey] ?? diaKey;
         const fecha = `${diaLabel} ${now.getDate()} ${MESES[now.getMonth()]} ${now.getFullYear()}`;
 
-        const [horario, upcomingEvents, todo, courses] = await Promise.all([
-          getHorarioMatriculado(),
+        const [horario, upcomingEvents, todo, rawCourses] = await Promise.all([
+          getHorarioMatriculado(profile),
           getUpcomingEvents(),
           getTodo(),
-          getActiveCourses(),
+          getActiveCourses(profile),
         ]);
+
+        const customAliases = getProfileAliases(profile);
+        const autoAliases = generateAliasMapByCodeName(
+          rawCourses.map((c) => ({ code: c.course_code, name: c.name })),
+        );
+        const aliasMap = { ...autoAliases, ...customAliases };
+        const courses = groupBySection(rawCourses, aliasMap);
 
         const bloques = (horario.dias as Record<string, typeof horario.dias.L>)[diaKey] ?? [];
 
-        const courseCodeMap = new Map<number, string>();
+        const courseCodeMap = new Map<string, string>();
         for (const c of courses) {
           for (const s of c.secciones) courseCodeMap.set(s.id, c.code);
         }
@@ -77,10 +88,10 @@ export function registerHoy(program: Command): void {
           if (!dueAt) continue;
           const due = new Date(dueAt);
           if (due <= todayEnd) {
-            const courseId = Number(ev.context_code?.replace("course_", "") ?? "0");
+            const courseId = ev.context_code?.replace("course_", "") ?? "0";
             tareasHoy.push({
               titulo: ev.assignment?.name ?? (ev as { title?: string }).title ?? "",
-              curso: courseCodeMap.get(courseId) ?? String(courseId),
+              curso: courseCodeMap.get(courseId) ?? courseId,
               due_at: due.toISOString(),
               url: ev.html_url ?? "",
             });

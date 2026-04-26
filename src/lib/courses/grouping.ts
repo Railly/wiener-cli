@@ -11,17 +11,27 @@ export function parseSectionFromName(name: string): { baseName: string; seccion:
   return { baseName: name.trim(), seccion: "T" };
 }
 
+function stripCodePrefix(name: string, code: string): string {
+  const prefix = `${code} - `;
+  if (name.startsWith(prefix)) return name.slice(prefix.length);
+  const prefixNoSpace = `${code}-`;
+  if (name.startsWith(prefixNoSpace)) return name.slice(prefixNoSpace.length);
+  return name;
+}
+
 export function groupBySection(
   courses: CanvasCourse[],
   aliasMap: Record<string, string> = {},
 ): LogicalCourse[] {
-  const byCode = new Map<string, LogicalCourse>();
+  const byCodeName = new Map<string, LogicalCourse>();
 
   for (const course of courses) {
     const code = course.course_code;
-    const { baseName, seccion } = parseSectionFromName(course.name);
+    const { baseName: rawBaseName, seccion } = parseSectionFromName(course.name);
+    const baseName = stripCodePrefix(rawBaseName, code);
+    const key = `${code}::${baseName}`;
 
-    const existing = byCode.get(code);
+    const existing = byCodeName.get(key);
     if (existing) {
       existing.secciones.push({
         id: course.id,
@@ -29,10 +39,11 @@ export function groupBySection(
         name: course.name,
       });
     } else {
-      byCode.set(code, {
+      const alias = aliasMap[key] ?? aliasMap[code] ?? code.toLowerCase();
+      byCodeName.set(key, {
         code,
         name: baseName,
-        alias: aliasMap[code] ?? code.toLowerCase(),
+        alias,
         secciones: [{ id: course.id, seccion, name: course.name }],
         term: course.term?.name,
         role: course.enrollments?.[0]?.role,
@@ -40,5 +51,5 @@ export function groupBySection(
     }
   }
 
-  return Array.from(byCode.values());
+  return Array.from(byCodeName.values());
 }

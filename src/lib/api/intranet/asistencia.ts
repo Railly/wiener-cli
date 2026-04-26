@@ -1,13 +1,17 @@
 import type { AsistenciaData, IntranetSession } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
 import { parseAsistencia } from "../../parsers/asistencia-table.ts";
-import { intranetFetch } from "./client.ts";
+import { IntranetClient } from "./client.ts";
 
 const ASISTENCIA_PATH = "/Alumno/Datosacademicos/Asistencia/asistencia.asp";
 
 export async function fetchAsistencia(session: IntranetSession): Promise<AsistenciaData> {
   try {
-    const response = await intranetFetch(ASISTENCIA_PATH, session);
+    const client = new IntranetClient({
+      aspCookieName: session.aspCookieName,
+      aspCookieValue: session.aspCookieValue,
+    });
+    const response = await client.fetch(ASISTENCIA_PATH);
     return parseAsistencia(response.text);
   } catch (e) {
     if (e instanceof WienerError) throw e;
