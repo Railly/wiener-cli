@@ -1,13 +1,17 @@
 import type { IntranetSession, MatriculaData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
 import { parseMatricula } from "../../parsers/matricula-table.ts";
-import { intranetFetch } from "./client.ts";
+import { IntranetClient } from "./client.ts";
 
 const MATRICULA_PATH = "/Alumno/matricula/registrarMatricula/fichaMatricula.asp";
 
 export async function fetchMatricula(session: IntranetSession): Promise<MatriculaData> {
   try {
-    const response = await intranetFetch(MATRICULA_PATH, session);
+    const client = new IntranetClient({
+      aspCookieName: session.aspCookieName,
+      aspCookieValue: session.aspCookieValue,
+    });
+    const response = await client.fetch(MATRICULA_PATH);
     return parseMatricula(response.text);
   } catch (e) {
     if (e instanceof WienerError) throw e;

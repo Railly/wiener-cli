@@ -2,7 +2,7 @@ import type { HorarioData, IntranetSession } from "../../../types/intranet.ts";
 import { loadIntranetSession } from "../../auth/store.ts";
 import { AuthRequiredError, WienerError } from "../../errors.ts";
 import { parseHorario } from "../../parsers/horario-table.ts";
-import { intranetFetch } from "./client.ts";
+import { IntranetClient } from "./client.ts";
 
 const HORARIO_PATH = "/Alumno/horarios/HorarioMatriculado/horario.asp";
 
@@ -14,7 +14,11 @@ export async function getHorarioMatriculado(profile = "default"): Promise<Horari
 
 export async function fetchHorario(session: IntranetSession): Promise<HorarioData> {
   try {
-    const response = await intranetFetch(HORARIO_PATH, session);
+    const client = new IntranetClient({
+      aspCookieName: session.aspCookieName,
+      aspCookieValue: session.aspCookieValue,
+    });
+    const response = await client.fetch(HORARIO_PATH);
     return parseHorario(response.text);
   } catch (e) {
     if (e instanceof WienerError) throw e;

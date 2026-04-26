@@ -52,7 +52,7 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
   const txId = `tx_${Date.now()}`;
   const auditDir = getWienerPaths().audit;
 
-  const session = loadIntranetSession(opts.profile);
+  const session = await loadIntranetSession(opts.profile);
   if (!session) {
     const err = errorEnvelope(
       "auth-required",
@@ -68,8 +68,6 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
     process.exit(1);
   }
 
-  // Rate guard — check BEFORE doing any network work
-  // Applies even with --yes (intentional safety rail)
   if (!opts.dryRun) {
     try {
       checkRateGuard("tramite-generar", RATE_LIMIT_WINDOW_MS, opts.profile);
@@ -90,8 +88,7 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
   }
 
   try {
-    // Validate tipo against known list (fetched live + weekly cache)
-    const tipos = await fetchTramiteTipos(session.aspCookieName, session.aspCookieValue);
+    const tipos = await fetchTramiteTipos(session);
 
     if (tipos.length > 0) {
       const match = tipos.find(
@@ -117,14 +114,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
         return;
       }
     }
-    // If tipos fetch returned empty (form shape changed), proceed with user's input
 
-    // Fetch preview — monto + concepto for the selected tipo
-    const preview = await fetchTramitePreview(
-      opts.tipo,
-      session.aspCookieName,
-      session.aspCookieValue,
-    );
+    const preview = await fetchTramitePreview(opts.tipo, session);
 
     const previewText = buildPreviewText(preview);
 
@@ -132,7 +123,6 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       printHeader("");
     }
 
-    // T2 confirmation
     const decision = await confirmT2("tramite generar", previewText, {
       yes: opts.yes,
       dryRun: opts.dryRun,
@@ -161,7 +151,6 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       return;
     }
 
-    // Lifecycle audit: open transaction
     const lifecycle = beginAudit(auditDir, {
       kind: "tramite.generar",
       command: "tramite generar",
@@ -170,19 +159,12 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       meta: { tipo: opts.tipo, tx_id: txId },
     });
 
-    // Execute
-    const result = await submitTramiteGenerar(
-      opts.tipo,
-      session.aspCookieName,
-      session.aspCookieValue,
-    );
+    const result = await submitTramiteGenerar(opts.tipo, session);
 
-    // Mark rate guard AFTER success
     markRateGuardUsed("tramite-generar", opts.profile);
 
     const durationMs = Date.now() - startMs;
 
-    // Lifecycle audit: complete
     lifecycle.complete({ orden_id: result.orden_id });
 
     if (opts.json) {
@@ -195,7 +177,6 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
     }
   } catch (e) {
     if (isWienerLike(e)) {
-      // Lifecycle audit: fail (begun above if lifecycle was created; otherwise use auditLog fallback)
       auditLog({
         ts: new Date().toISOString(),
         command: "tramite generar",

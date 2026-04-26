@@ -1,7 +1,7 @@
 import type { IntranetSession, NotasData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
 import { parseNotas, parsePeriodos } from "../../parsers/notas-table.ts";
-import { intranetFetch } from "./client.ts";
+import { IntranetClient } from "./client.ts";
 
 const NOTAS_PATH = "/Alumno/Datosacademicos/notas/NOTAS.asp";
 
@@ -9,25 +9,25 @@ export async function fetchNotas(
   session: IntranetSession,
   periodo?: string,
 ): Promise<{ data: NotasData; periodos: string[] }> {
+  const client = new IntranetClient({
+    aspCookieName: session.aspCookieName,
+    aspCookieValue: session.aspCookieValue,
+  });
+
   let path = NOTAS_PATH;
-  const method: "GET" | "POST" = "GET";
-  let body: string | undefined;
 
   if (periodo) {
-    // Try GET with query param first (most common ASP pattern)
     path = `${NOTAS_PATH}?periodo=${encodeURIComponent(periodo)}`;
   }
 
   try {
-    const response = await intranetFetch(path, session, { method });
+    const response = await client.fetch(path, { method: "GET" });
     const result = parseNotas(response.text);
 
-    // If no courses found with GET, try POST (form submission)
     if (periodo && result.data.cursos.length === 0) {
-      body = `periodo=${encodeURIComponent(periodo)}`;
-      const postResponse = await intranetFetch(NOTAS_PATH, session, {
+      const postResponse = await client.fetch(NOTAS_PATH, {
         method: "POST",
-        body,
+        body: `periodo=${encodeURIComponent(periodo)}`,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
       return parseNotas(postResponse.text);
@@ -45,6 +45,10 @@ export async function fetchNotas(
 }
 
 export async function fetchPeriodos(session: IntranetSession): Promise<string[]> {
-  const response = await intranetFetch(NOTAS_PATH, session);
+  const client = new IntranetClient({
+    aspCookieName: session.aspCookieName,
+    aspCookieValue: session.aspCookieValue,
+  });
+  const response = await client.fetch(NOTAS_PATH);
   return parsePeriodos(response.text);
 }
