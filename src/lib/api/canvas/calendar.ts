@@ -3,15 +3,27 @@ import type {
   CanvasTodoItem,
   CanvasUpcomingEvent,
 } from "../../../types/canvas.js";
+import { loadCanvasSession } from "../../auth/store.js";
+import { CanvasNotConfiguredError } from "../../errors.js";
 import { canvasFetchAll } from "./client.js";
 
-export async function fetchUpcomingEvents(): Promise<CanvasUpcomingEvent[]> {
-  const res = await canvasFetchAll<CanvasUpcomingEvent>("/api/v1/users/self/upcoming_events");
+async function requireCanvasToken(profile = "default"): Promise<string> {
+  const session = await loadCanvasSession(profile);
+  if (!session) throw new CanvasNotConfiguredError();
+  return session.token;
+}
+
+export async function fetchUpcomingEvents(profile = "default"): Promise<CanvasUpcomingEvent[]> {
+  const token = await requireCanvasToken(profile);
+  const res = await canvasFetchAll<CanvasUpcomingEvent>("/api/v1/users/self/upcoming_events", {
+    token,
+  });
   return res.data;
 }
 
-export async function fetchTodoItems(): Promise<CanvasTodoItem[]> {
-  const res = await canvasFetchAll<CanvasTodoItem>("/api/v1/users/self/todo");
+export async function fetchTodoItems(profile = "default"): Promise<CanvasTodoItem[]> {
+  const token = await requireCanvasToken(profile);
+  const res = await canvasFetchAll<CanvasTodoItem>("/api/v1/users/self/todo", { token });
   return res.data;
 }
 
@@ -23,7 +35,9 @@ export async function fetchCalendarEvents(opts: {
   startDate: string;
   endDate: string;
   perPage?: number;
+  profile?: string;
 }): Promise<CanvasCalendarEvent[]> {
+  const token = await requireCanvasToken(opts.profile ?? "default");
   const params = new URLSearchParams();
   for (const code of opts.contextCodes) params.append("context_codes[]", code);
   params.set("start_date", opts.startDate);
@@ -31,6 +45,6 @@ export async function fetchCalendarEvents(opts: {
   params.set("per_page", String(opts.perPage ?? 100));
 
   const path = `/api/v1/calendar_events?${params.toString()}`;
-  const res = await canvasFetchAll<CanvasCalendarEvent>(path);
+  const res = await canvasFetchAll<CanvasCalendarEvent>(path, { token });
   return res.data;
 }

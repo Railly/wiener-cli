@@ -1,31 +1,43 @@
 import type { CanvasFile, CanvasFolder } from "../../../types/canvas.js";
+import { loadCanvasSession } from "../../auth/store.js";
+import { CanvasNotConfiguredError } from "../../errors.js";
 import { canvasFetch, canvasFetchAll } from "./client.js";
 
-export async function fetchCourseFiles(courseId: number): Promise<CanvasFile[]> {
-  const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files`, {
-    queryParams: { per_page: 100 },
-  });
+async function requireCanvasToken(profile = "default"): Promise<string> {
+  const session = await loadCanvasSession(profile);
+  if (!session) throw new CanvasNotConfiguredError();
+  return session.token;
+}
+
+export async function fetchCourseFiles(courseId: number, token: string): Promise<CanvasFile[]> {
+  const res = await canvasFetchAll<CanvasFile>(
+    `/api/v1/courses/${courseId}/files?per_page=100`,
+    { token },
+  );
   return res.data;
 }
 
-export async function fetchCourseFolders(courseId: number): Promise<CanvasFolder[]> {
-  const res = await canvasFetchAll<CanvasFolder>(`/api/v1/courses/${courseId}/folders`, {
-    queryParams: { per_page: 100 },
-  });
+export async function fetchCourseFolders(courseId: number, token: string): Promise<CanvasFolder[]> {
+  const res = await canvasFetchAll<CanvasFolder>(
+    `/api/v1/courses/${courseId}/folders?per_page=100`,
+    { token },
+  );
   return res.data;
 }
 
-export async function fetchFolderFiles(folderId: number): Promise<CanvasFile[]> {
-  const res = await canvasFetchAll<CanvasFile>(`/api/v1/folders/${folderId}/files`, {
-    queryParams: { per_page: 100 },
-  });
+export async function fetchFolderFiles(folderId: number, token: string): Promise<CanvasFile[]> {
+  const res = await canvasFetchAll<CanvasFile>(
+    `/api/v1/folders/${folderId}/files?per_page=100`,
+    { token },
+  );
   return res.data;
 }
 
-export async function fetchFolderSubFolders(folderId: number): Promise<CanvasFolder[]> {
-  const res = await canvasFetchAll<CanvasFolder>(`/api/v1/folders/${folderId}/folders`, {
-    queryParams: { per_page: 100 },
-  });
+export async function fetchFolderSubFolders(folderId: number, token: string): Promise<CanvasFolder[]> {
+  const res = await canvasFetchAll<CanvasFolder>(
+    `/api/v1/folders/${folderId}/folders?per_page=100`,
+    { token },
+  );
   return res.data;
 }
 
@@ -37,16 +49,17 @@ export interface FileTreeNode {
 
 export async function listAllFiles(
   courseId: number | string,
-  token?: string,
+  tokenOrProfile?: string,
 ): Promise<CanvasFile[]> {
-  if (token !== undefined) {
-    const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files`, {
-      token,
-      queryParams: { per_page: 100 },
-    } as Parameters<typeof canvasFetchAll>[1]);
-    return res.data;
-  }
-  return fetchCourseFiles(Number(courseId));
+  const token =
+    tokenOrProfile && tokenOrProfile.length > 20
+      ? tokenOrProfile
+      : await requireCanvasToken(tokenOrProfile ?? "default");
+  const res = await canvasFetchAll<CanvasFile>(
+    `/api/v1/courses/${courseId}/files?per_page=100`,
+    { token },
+  );
+  return res.data;
 }
 
 export async function getFile(fileId: string | number, token: string): Promise<CanvasFile> {
@@ -54,12 +67,10 @@ export async function getFile(fileId: string | number, token: string): Promise<C
   return res.data;
 }
 
-export async function buildFileTree(courseId: number): Promise<FileTreeNode | null> {
-  const allFolders = await fetchCourseFolders(courseId);
+export async function buildFileTree(courseId: number, profile = "default"): Promise<FileTreeNode | null> {
+  const token = await requireCanvasToken(profile);
+  const allFolders = await fetchCourseFolders(courseId, token);
   if (allFolders.length === 0) return null;
-
-  const folderMap = new Map<number, CanvasFolder>();
-  for (const f of allFolders) folderMap.set(f.id, f);
 
   const childrenOf = new Map<number | null, CanvasFolder[]>();
   for (const f of allFolders) {
@@ -74,7 +85,7 @@ export async function buildFileTree(courseId: number): Promise<FileTreeNode | nu
 
   async function buildNode(folder: CanvasFolder): Promise<FileTreeNode> {
     const [files, subFolderObjects] = await Promise.all([
-      fetchFolderFiles(folder.id),
+      fetchFolderFiles(folder.id, token),
       Promise.resolve(childrenOf.get(folder.id) ?? []),
     ]);
     const subfolders = await Promise.all(subFolderObjects.map(buildNode));

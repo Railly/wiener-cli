@@ -1,5 +1,4 @@
-// PHASE C WILL REPLACE — Canvas folders API
-import { canvasFetch } from "./client.ts";
+import { canvasFetchAll } from "./client.ts";
 
 export interface CanvasFolder {
   id: number;
@@ -11,14 +10,9 @@ export interface CanvasFolder {
 }
 
 export async function getFolderTree(courseId: string, token: string): Promise<CanvasFolder[]> {
-  const folders: CanvasFolder[] = [];
-  let path: string | undefined = `/api/v1/courses/${courseId}/folders?per_page=100`;
-
-  while (path) {
-    const res = await canvasFetch<CanvasFolder[]>(path, token);
-    folders.push(...res.data);
-    path = res.nextLink;
-  }
-
-  return folders;
+  const res = await canvasFetchAll<CanvasFolder>(
+    `/api/v1/courses/${courseId}/folders?per_page=100`,
+    { token },
+  );
+  return res.data;
 }
