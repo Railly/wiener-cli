@@ -132,3 +132,16 @@ export class NotImplementedError extends WienerError {
     });
   }
 }
+
+export function isWienerError(e: unknown): e is WienerError {
+  return e instanceof WienerError;
+}
+
+export function isWienerLike(e: unknown): e is WienerError {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    typeof (e as Record<string, unknown>)["code"] === "string" &&
+    typeof (e as Record<string, unknown>)["message"] === "string"
+  );
+}
