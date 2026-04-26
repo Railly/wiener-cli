@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchTramites } from "../../lib/api/intranet/tramite.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
 
 export function makeTramiteCommand(): Command {
   const cmd = new Command("tramite")
@@ -29,8 +29,10 @@ export function makeTramiteCommand(): Command {
             }
 
             console.log("\nTrámites Académicos\n");
-            console.log("  N°    Tipo                                       Estado         Fecha Inicio");
-            console.log("  " + "─".repeat(80));
+            console.log(
+              "  N°    Tipo                                       Estado         Fecha Inicio",
+            );
+            console.log(`  ${"─".repeat(80)}`);
             for (const t of data.tramites) {
               console.log(
                 `  ${t.id.padEnd(5)} ${t.tipo.slice(0, 42).padEnd(42)} ${t.estado.padEnd(14)} ${t.fecha_inicio ?? "—"}`,

@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../lib/auth/store.ts";
 import { fetchHistorial } from "../lib/api/intranet/historial.ts";
-import { ok, err } from "../lib/output/envelope.ts";
-import { emit, emitError } from "../lib/output/json.ts";
+import { loadIntranetSession } from "../lib/auth/store.ts";
 import { isWienerError } from "../lib/errors.ts";
+import { err, ok } from "../lib/output/envelope.ts";
+import { emit, emitError } from "../lib/output/json.ts";
 
 export function makeHistorialCommand(): Command {
   return new Command("historial")

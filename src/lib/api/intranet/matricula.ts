@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseMatricula } from "../../parsers/matricula-table.ts";
 import type { IntranetSession, MatriculaData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseMatricula } from "../../parsers/matricula-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const MATRICULA_PATH = "/Alumno/matricula/registrarMatricula/fichaMatricula.asp";
 

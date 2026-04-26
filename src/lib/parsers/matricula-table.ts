@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
-import type { MatriculaData, MatriculaCurso } from "../../types/intranet.ts";
+import type { MatriculaCurso, MatriculaData } from "../../types/intranet.ts";
 
 function parseNumber(raw: string): number {
-  const n = parseFloat(raw.trim().replace(",", "."));
+  const n = Number.parseFloat(raw.trim().replace(",", "."));
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -44,7 +44,13 @@ export function parseMatricula(html: string): MatriculaData {
       headerTexts.some(
         (h) => h.includes("código") || h.includes("codigo") || h.includes("curso"),
       ) &&
-      headerTexts.some((h) => h.includes("crédito") || h.includes("credito") || h.includes("sección") || h.includes("seccion"))
+      headerTexts.some(
+        (h) =>
+          h.includes("crédito") ||
+          h.includes("credito") ||
+          h.includes("sección") ||
+          h.includes("seccion"),
+      )
     ) {
       dataTable = $(table);
     }
@@ -61,7 +67,18 @@ export function parseMatricula(html: string): MatriculaData {
     if (headerRow >= 0) return;
     const cells = $(row).find("td, th");
     const texts = cells.map((_, c) => normalizeWhitespace($(c).text()).toLowerCase()).get();
-    if (texts.some((t) => t === "código" || t === "codigo" || t === "cód" || t === "créditos" || t === "creditos" || t === "sección" || t === "seccion")) {
+    if (
+      texts.some(
+        (t) =>
+          t === "código" ||
+          t === "codigo" ||
+          t === "cód" ||
+          t === "créditos" ||
+          t === "creditos" ||
+          t === "sección" ||
+          t === "seccion",
+      )
+    ) {
       headerRow = i;
       headers.push(...texts);
     }

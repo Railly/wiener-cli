@@ -1,4 +1,8 @@
-import type { CanvasCalendarEvent, CanvasUpcomingEvent, CanvasTodoItem } from "../../../types/canvas.js";
+import type {
+  CanvasCalendarEvent,
+  CanvasTodoItem,
+  CanvasUpcomingEvent,
+} from "../../../types/canvas.js";
 import { canvasFetchAll } from "./client.js";
 
 export async function fetchUpcomingEvents(): Promise<CanvasUpcomingEvent[]> {
@@ -10,6 +14,9 @@ export async function fetchTodoItems(): Promise<CanvasTodoItem[]> {
   const res = await canvasFetchAll<CanvasTodoItem>("/api/v1/users/self/todo");
   return res.data;
 }
+
+export const getUpcomingEvents = fetchUpcomingEvents;
+export const getTodo = fetchTodoItems;
 
 export async function fetchCalendarEvents(opts: {
   contextCodes: string[];

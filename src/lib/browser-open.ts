@@ -10,3 +10,5 @@ export async function openInBrowser(url: string): Promise<void> {
     throw new Error(`Unsupported platform for browser open: ${platform}`);
   }
 }
+
+export const openUrl = openInBrowser;

@@ -1,11 +1,11 @@
 import { DEFAULT_CONFIG } from "../../../types/config.js";
 import type { CanvasCourse } from "../../../types/course.js";
-import { canvasFetch, canvasFetchAll } from "./client.js";
 import { loadCanvasSession } from "../../auth/store.js";
 import { getFromCache, setCache } from "../../cache/kv.js";
 import { CanvasNotConfiguredError } from "../../errors.js";
+import { canvasFetch, canvasFetchAll } from "./client.js";
 
-export async function getActiveCourses(token: string): Promise<CanvasCourse[]> {
+export async function getActiveCoursesWithToken(token: string): Promise<CanvasCourse[]> {
   const result = await canvasFetchAll<CanvasCourse>(
     `/api/v1/courses?enrollment_state=active&per_page=${DEFAULT_CONFIG.canvas.per_page}&include[]=term&include[]=enrollments`,
     { token },
@@ -50,6 +50,8 @@ export async function fetchActiveCourses(profile = "default"): Promise<CanvasCou
   setCache(cacheUrl, res.data);
   return res.data;
 }
+
+export const getActiveCourses = fetchActiveCourses;
 
 export async function fetchCourse(
   courseId: number,

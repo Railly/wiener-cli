@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import type { ExamenesData, ExamenItem } from "../../types/intranet.ts";
+import type { ExamenItem, ExamenesData } from "../../types/intranet.ts";
 
 function normalizeWhitespace(s: string): string {
   return s.replace(/\s+/g, " ").trim();

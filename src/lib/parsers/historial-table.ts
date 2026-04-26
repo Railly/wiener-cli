@@ -1,10 +1,10 @@
 import * as cheerio from "cheerio";
-import type { HistorialData, HistorialCiclo, HistorialCurso } from "../../types/intranet.ts";
+import type { HistorialCiclo, HistorialCurso, HistorialData } from "../../types/intranet.ts";
 
 function parseNumber(raw: string): number | null {
   const s = raw.trim().replace(",", ".");
   if (!s || s === "-" || s === "") return null;
-  const n = parseFloat(s);
+  const n = Number.parseFloat(s);
   return Number.isFinite(n) ? n : null;
 }
 

@@ -3,7 +3,7 @@ import { canvasFetchAll } from "./client.js";
 
 export async function fetchAnnouncements(
   courseIds: number[],
-  lastN = 10
+  lastN = 10,
 ): Promise<CanvasAnnouncement[]> {
   if (courseIds.length === 0) return [];
 
@@ -17,8 +17,15 @@ export async function fetchAnnouncements(
   return res.data;
 }
 
+export async function getAnnouncements(
+  courseIds: number[],
+  lastN = 10,
+): Promise<CanvasAnnouncement[]> {
+  return fetchAnnouncements(courseIds, lastN);
+}
+
 export async function fetchGlobalAnnouncements(
-  accountId: number | "auto" = "auto"
+  accountId: number | "auto" = "auto",
 ): Promise<CanvasAnnouncement[]> {
   const id = accountId === "auto" ? 1 : accountId;
   const params = new URLSearchParams();

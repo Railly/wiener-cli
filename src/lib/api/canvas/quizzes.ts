@@ -1,6 +1,6 @@
 import type { CanvasQuiz } from "../../../types/canvas.js";
-import { canvasFetch, canvasFetchAll } from "./client.js";
 import { WienerError } from "../../errors.js";
+import { canvasFetchAll } from "./client.js";
 
 export async function fetchQuizzes(courseId: number): Promise<CanvasQuiz[]> {
   try {

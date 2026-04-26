@@ -1,9 +1,9 @@
 // Two-layer cache: in-memory (per-process, instant) + file-based (5min TTL, persistent)
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -11,7 +11,7 @@ const TTL_MS = 5 * 60 * 1000; // 5 minutes
 const memCache = new Map<string, { value: unknown; expiresAt: number }>();
 
 function cacheDir(): string {
-  const base = process.env["WIENER_CONFIG_DIR"] ?? join(homedir(), ".wiener");
+  const base = process.env.WIENER_CONFIG_DIR ?? join(homedir(), ".wiener");
   const dir = join(base, "cache");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;

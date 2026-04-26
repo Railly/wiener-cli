@@ -1,21 +1,21 @@
 // wiener tareas — all pending tasks across all active courses
 // wiener tareas <ref> — tasks for a specific course
 
+import pc from "picocolors";
+import { fetchAssignments } from "../../lib/api/canvas/assignments.js";
+import { fetchTodoItems, fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
+import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
+import { groupBySection } from "../../lib/courses/grouping.js";
+import { resolveCourse } from "../../lib/courses/resolver.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { err, ok } from "../../lib/output/envelope.js";
+import { projectFields } from "../../lib/output/fields.js";
+import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
+import { pMap } from "../../lib/parallel.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course } from "../../types/course.js";
-import { fetchAssignments } from "../../lib/api/canvas/assignments.js";
-import { fetchUpcomingEvents, fetchTodoItems } from "../../lib/api/canvas/calendar.js";
-import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { resolveCourse } from "../../lib/courses/resolver.js";
-import { groupBySection, canvasCourseToLogical } from "../../lib/courses/grouping.js";
-import { pMap } from "../../lib/parallel.js";
-import { ok, err } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../../lib/output/human.js";
-import { projectFields } from "../../lib/output/fields.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
 import type { SectionType } from "../../types/course.js";
-import pc from "picocolors";
 
 interface TareaItem {
   id: number;
@@ -94,7 +94,12 @@ export async function runTareasList(opts: {
       const courseId = a.course_id;
       tareaMap.set(key, {
         id: a.id,
-        curso: { code: String(courseId), alias: String(courseId).toLowerCase(), seccion: "T", courseId },
+        curso: {
+          code: String(courseId),
+          alias: String(courseId).toLowerCase(),
+          seccion: "T",
+          courseId,
+        },
         name: a.name,
         due_at: a.due_at ?? null,
         points: a.points_possible,
@@ -105,8 +110,8 @@ export async function runTareasList(opts: {
       });
     }
 
-    let tareas = Array.from(tareaMap.values()).sort(
-      (a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? "")
+    let tareas = Array.from(tareaMap.values()).sort((a, b) =>
+      (a.due_at ?? "").localeCompare(b.due_at ?? ""),
     );
 
     if (opts.seccion) {
@@ -116,13 +121,15 @@ export async function runTareasList(opts: {
     const data = { tareas };
 
     if (opts.json) {
-      const envelope = ok(opts.fields ? projectFields(data as unknown as Record<string, unknown>, opts.fields) : data);
+      const envelope = ok(
+        opts.fields ? projectFields(data as unknown as Record<string, unknown>, opts.fields) : data,
+      );
       emit(envelope);
       return;
     }
 
     if (opts.ndjson) {
-      for (const t of tareas) process.stdout.write(JSON.stringify(t) + "\n");
+      for (const t of tareas) process.stdout.write(`${JSON.stringify(t)}\n`);
       return;
     }
 
@@ -137,19 +144,28 @@ export async function runTareasList(opts: {
       nombre: t.name,
       vencimiento: formatDate(t.due_at),
       puntos: String(t.points),
-      estado: t.graded ? pc.green("calificado") : t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
+      estado: t.graded
+        ? pc.green("calificado")
+        : t.submitted
+          ? pc.yellow("entregado")
+          : pc.red("pendiente"),
       nota: t.grade ?? pc.dim("—"),
     }));
 
-    console.log(renderSection("Tareas pendientes", renderTable(rows, [
-      { header: "ID", key: "id" },
-      { header: "Curso", key: "curso" },
-      { header: "Nombre", key: "nombre", maxWidth: 40 },
-      { header: "Vencimiento", key: "vencimiento" },
-      { header: "Pts", key: "puntos" },
-      { header: "Estado", key: "estado" },
-      { header: "Nota", key: "nota" },
-    ])));
+    console.log(
+      renderSection(
+        "Tareas pendientes",
+        renderTable(rows, [
+          { header: "ID", key: "id" },
+          { header: "Curso", key: "curso" },
+          { header: "Nombre", key: "nombre", maxWidth: 40 },
+          { header: "Vencimiento", key: "vencimiento" },
+          { header: "Pts", key: "puntos" },
+          { header: "Estado", key: "estado" },
+          { header: "Nota", key: "nota" },
+        ]),
+      ),
+    );
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));
@@ -169,7 +185,7 @@ export async function runTareasByCourse(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -177,13 +193,17 @@ export async function runTareasByCourse(
     const resolution = resolveCourse(ref, courses, { exact: opts.exact, noInput: opts.noInput });
 
     if (resolution.kind === "no-match") {
-      const errEnv = err(
-        "course-not-found",
-        `No course matching "${ref}"`,
-        "Try: wiener cursos",
-        { closest: resolution.closest.map((c) => ({ code: c.course.code, name: c.course.name, score: c.score })) }
-      );
-      if (opts.json) { emit(errEnv); return; }
+      const errEnv = err("course-not-found", `No course matching "${ref}"`, "Try: wiener cursos", {
+        closest: resolution.closest.map((c) => ({
+          code: c.course.code,
+          name: c.course.name,
+          score: c.score,
+        })),
+      });
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
     }
@@ -193,10 +213,21 @@ export async function runTareasByCourse(
         "course-ambiguous",
         `Multiple courses match "${ref}"`,
         "Try: wiener cursos",
-        { candidates: resolution.candidates.map((c) => ({ code: c.course.code, name: c.course.name, score: c.score })) }
+        {
+          candidates: resolution.candidates.map((c) => ({
+            code: c.course.code,
+            name: c.course.name,
+            score: c.score,
+          })),
+        },
       );
-      if (opts.json) { emit(errEnv); return; }
-      process.stderr.write(`Ambiguous: ${resolution.candidates.map((c) => c.course.code).join(", ")}\n`);
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
+      process.stderr.write(
+        `Ambiguous: ${resolution.candidates.map((c) => c.course.code).join(", ")}\n`,
+      );
       process.exit(1);
     }
 
@@ -204,31 +235,36 @@ export async function runTareasByCourse(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allTareas = await pMap(
       filtered,
       async (s) => {
         const assignments = await fetchAssignments(s.id);
-        return assignments.map((a) => ({
-          id: a.id,
-          curso: {
-            code: resolvedCourse.code,
-            alias: resolvedCourse.alias,
-            seccion: s.seccion,
-            courseId: s.id,
-          },
-          name: a.name,
-          due_at: a.due_at ?? null,
-          points: a.points_possible,
-          submitted: a.submission ? a.submission.workflow_state !== "unsubmitted" : false,
-          graded: a.submission ? a.submission.workflow_state === "graded" : false,
-          grade: a.submission?.grade ?? null,
-          url: a.html_url,
-        } satisfies TareaItem));
+        return assignments.map(
+          (a) =>
+            ({
+              id: a.id,
+              curso: {
+                code: resolvedCourse.code,
+                alias: resolvedCourse.alias,
+                seccion: s.seccion,
+                courseId: s.id,
+              },
+              name: a.name,
+              due_at: a.due_at ?? null,
+              points: a.points_possible,
+              submitted: a.submission ? a.submission.workflow_state !== "unsubmitted" : false,
+              graded: a.submission ? a.submission.workflow_state === "graded" : false,
+              grade: a.submission?.grade ?? null,
+              url: a.html_url,
+            }) satisfies TareaItem,
+        );
       },
-      4
+      4,
     );
 
     const tareas = allTareas.flat().sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
@@ -241,13 +277,15 @@ export async function runTareasByCourse(
     const data = { curso: cursoInfo, tareas };
 
     if (opts.json) {
-      const envelope = ok(opts.fields ? projectFields(data as unknown as Record<string, unknown>, opts.fields) : data);
+      const envelope = ok(
+        opts.fields ? projectFields(data as unknown as Record<string, unknown>, opts.fields) : data,
+      );
       emit(envelope);
       return;
     }
 
     if (opts.ndjson) {
-      for (const t of tareas) process.stdout.write(JSON.stringify(t) + "\n");
+      for (const t of tareas) process.stdout.write(`${JSON.stringify(t)}\n`);
       return;
     }
 
@@ -262,22 +300,28 @@ export async function runTareasByCourse(
       nombre: t.name,
       vencimiento: formatDate(t.due_at),
       puntos: String(t.points),
-      estado: t.graded ? pc.green("calificado") : t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
+      estado: t.graded
+        ? pc.green("calificado")
+        : t.submitted
+          ? pc.yellow("entregado")
+          : pc.red("pendiente"),
       nota: t.grade ?? pc.dim("—"),
     }));
 
-    console.log(renderSection(
-      `Tareas — ${resolvedCourse.code} (${resolvedCourse.name})`,
-      renderTable(rows, [
-        { header: "ID", key: "id" },
-        { header: "Secc.", key: "seccion" },
-        { header: "Nombre", key: "nombre", maxWidth: 45 },
-        { header: "Vencimiento", key: "vencimiento" },
-        { header: "Pts", key: "puntos" },
-        { header: "Estado", key: "estado" },
-        { header: "Nota", key: "nota" },
-      ])
-    ));
+    console.log(
+      renderSection(
+        `Tareas — ${resolvedCourse.code} (${resolvedCourse.name})`,
+        renderTable(rows, [
+          { header: "ID", key: "id" },
+          { header: "Secc.", key: "seccion" },
+          { header: "Nombre", key: "nombre", maxWidth: 45 },
+          { header: "Vencimiento", key: "vencimiento" },
+          { header: "Pts", key: "puntos" },
+          { header: "Estado", key: "estado" },
+          { header: "Nota", key: "nota" },
+        ]),
+      ),
+    );
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));

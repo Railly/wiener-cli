@@ -2,14 +2,14 @@
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
-import { ok, err } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { err, ok } from "../../lib/output/envelope.js";
+import { emit } from "../../lib/output/json.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course } from "../../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -40,7 +40,7 @@ function mergeIcs(calendars: string[]): string {
     allVEvents.push(...matches);
   }
 
-  return [
+  return `${[
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//wiener-cli//EN",
@@ -48,7 +48,7 @@ function mergeIcs(calendars: string[]): string {
     "METHOD:PUBLISH",
     ...allVEvents,
     "END:VCALENDAR",
-  ].join("\r\n") + "\r\n";
+  ].join("\r\n")}\r\n`;
 }
 
 export async function runCalendarioIcs(opts: {
@@ -64,11 +64,17 @@ export async function runCalendarioIcs(opts: {
 
     if (opts.curso) {
       const courseList = toList(courses);
-      const resolution = resolveCourse(opts.curso, courseList, { exact: opts.exact, noInput: opts.noInput });
+      const resolution = resolveCourse(opts.curso, courseList, {
+        exact: opts.exact,
+        noInput: opts.noInput,
+      });
 
       if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
         const errEnv = err("course-not-found", `No course matching "${opts.curso}"`);
-        if (opts.json) { emit(errEnv); return; }
+        if (opts.json) {
+          emit(errEnv);
+          return;
+        }
         process.stderr.write(`No course matching "${opts.curso}"\n`);
         process.exit(1);
         return;
@@ -80,7 +86,10 @@ export async function runCalendarioIcs(opts: {
       const icsUrls = matchingCourses.map((c) => c.calendar?.ics).filter(Boolean) as string[];
       if (icsUrls.length === 0) {
         const errEnv = err("not-implemented", "No ICS URL available for this course");
-        if (opts.json) { emit(errEnv); return; }
+        if (opts.json) {
+          emit(errEnv);
+          return;
+        }
         process.stderr.write("No ICS URL for this course\n");
         process.exit(1);
         return;
@@ -101,7 +110,10 @@ export async function runCalendarioIcs(opts: {
     const icsUrls = courses.map((c) => c.calendar?.ics).filter(Boolean) as string[];
     if (icsUrls.length === 0) {
       const errEnv = err("not-implemented", "No ICS URLs available");
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write("No ICS URLs available for courses\n");
       process.exit(1);
       return;
@@ -121,7 +133,10 @@ export async function runCalendarioIcs(opts: {
     console.log(pc.green(`ICS merged guardado: ${outPath}`));
     console.log(pc.dim(`  ${courses.length} cursos, ${eventCount} eventos`));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

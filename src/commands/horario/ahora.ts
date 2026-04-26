@@ -1,18 +1,18 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchHorario } from "../../lib/api/intranet/horario.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
 import {
+  bloqueContainsNow,
+  filterBloquesByDayCode,
   getLimaDayCode,
   getLimaTimeMinutes,
-  filterBloquesByDayCode,
-  bloqueContainsNow,
   minutesUntilBloque,
   sortBloquesByTime,
 } from "../../lib/horario-time.ts";
-import type { HorarioBloque, DiaCode } from "../../types/intranet.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
+import type { DiaCode, HorarioBloque } from "../../types/intranet.ts";
 
 const DAY_ORDER: DiaCode[] = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -60,7 +60,7 @@ export function makeHorarioAhoraCommand(): Command {
             const nextBloques = sortBloquesByTime(horario.dias[nextDayCode] ?? []);
             if (nextBloques.length > 0 && nextBloques[0]) {
               proximo = nextBloques[0];
-              const minutesUntilMidnight = (24 * 60) - nowMinutes;
+              const minutesUntilMidnight = 24 * 60 - nowMinutes;
               const fullDays = offset - 1;
               const minutesIntoDay = minutesUntilBloque(proximo, 0);
               etaMinutos = minutesUntilMidnight + fullDays * 24 * 60 + minutesIntoDay;
@@ -85,7 +85,8 @@ export function makeHorarioAhoraCommand(): Command {
             ? `${ahora.course_code} · ${ahora.course_name}`
             : ahora.course_name;
           console.log(`\nAhora: ${time} ${course}`);
-          if (ahora.room) console.log(`       ${ahora.room}${ahora.teacher ? ` · ${ahora.teacher}` : ""}`);
+          if (ahora.room)
+            console.log(`       ${ahora.room}${ahora.teacher ? ` · ${ahora.teacher}` : ""}`);
         } else {
           console.log("\nAhora: Sin clase en curso");
         }
@@ -100,7 +101,10 @@ export function makeHorarioAhoraCommand(): Command {
               ? ` (en ${etaMinutos >= 60 ? `${Math.floor(etaMinutos / 60)}h ${etaMinutos % 60}m` : `${etaMinutos}m`})`
               : "";
           console.log(`Próximo: ${time} ${course}${eta}`);
-          if (proximo.room) console.log(`         ${proximo.room}${proximo.teacher ? ` · ${proximo.teacher}` : ""}`);
+          if (proximo.room)
+            console.log(
+              `         ${proximo.room}${proximo.teacher ? ` · ${proximo.teacher}` : ""}`,
+            );
         } else {
           console.log("Próximo: Sin clases próximas");
         }

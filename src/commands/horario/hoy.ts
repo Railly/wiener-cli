@@ -1,14 +1,10 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchHorario } from "../../lib/api/intranet/horario.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
-import {
-  getLimaDayCode,
-  getLimaDateISO,
-  filterBloquesByDayCode,
-} from "../../lib/horario-time.ts";
+import { filterBloquesByDayCode, getLimaDateISO, getLimaDayCode } from "../../lib/horario-time.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
 
 const DAY_LABELS: Record<string, string> = {
   L: "Lunes",

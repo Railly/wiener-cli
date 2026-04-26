@@ -4,6 +4,12 @@ export function isInteractive(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true;
 }
 
+export function isColorEnabled(): boolean {
+  if (process.env.NO_COLOR) return false;
+  if (process.env.FORCE_COLOR) return true;
+  return process.stdout.isTTY === true;
+}
+
 export function enforceNoInput(flag: boolean | undefined): void {
   if (flag) {
     throw new WienerError(

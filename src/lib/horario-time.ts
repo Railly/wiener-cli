@@ -1,8 +1,8 @@
-import type { HorarioBloque, DiaCode } from "../types/intranet.ts";
+import type { DiaCode, HorarioBloque } from "../types/intranet.ts";
 
 const LIMA_TZ = "America/Lima";
 
-const DAY_NUMBER_TO_CODE: Record<number, DiaCode> = {
+const _DAY_NUMBER_TO_CODE: Record<number, DiaCode> = {
   0: "D",
   1: "L",
   2: "M",
@@ -59,8 +59,8 @@ export function getLimaTimeMinutes(): number {
   let hours = 0;
   let minutes = 0;
   for (const part of parts) {
-    if (part.type === "hour") hours = parseInt(part.value, 10);
-    if (part.type === "minute") minutes = parseInt(part.value, 10);
+    if (part.type === "hour") hours = Number.parseInt(part.value, 10);
+    if (part.type === "minute") minutes = Number.parseInt(part.value, 10);
   }
 
   return hours * 60 + minutes;
@@ -68,8 +68,8 @@ export function getLimaTimeMinutes(): number {
 
 function timeToMinutes(hhmm: string): number {
   const parts = hhmm.split(":");
-  const h = parseInt(parts[0] ?? "0", 10);
-  const m = parseInt(parts[1] ?? "0", 10);
+  const h = Number.parseInt(parts[0] ?? "0", 10);
+  const m = Number.parseInt(parts[1] ?? "0", 10);
   return h * 60 + m;
 }
 
@@ -85,9 +85,7 @@ export function minutesUntilBloque(bloque: HorarioBloque, nowMinutes: number): n
 }
 
 export function sortBloquesByTime(bloques: HorarioBloque[]): HorarioBloque[] {
-  return [...bloques].sort(
-    (a, b) => timeToMinutes(a.time_start) - timeToMinutes(b.time_start),
-  );
+  return [...bloques].sort((a, b) => timeToMinutes(a.time_start) - timeToMinutes(b.time_start));
 }
 
 export function filterBloquesByDayCode(

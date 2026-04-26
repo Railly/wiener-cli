@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseHistorial } from "../../parsers/historial-table.ts";
-import type { IntranetSession, HistorialData } from "../../../types/intranet.ts";
+import type { HistorialData, IntranetSession } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseHistorial } from "../../parsers/historial-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const HISTORIAL_PATH = "/Alumno/matricula/HistorialAcademico/HistorialAcademico.asp";
 

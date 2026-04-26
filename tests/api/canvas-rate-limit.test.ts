@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { WienerError, isWienerError, toErrorEnvelope } from "../../src/lib/errors.js";
 
 describe("WienerError", () => {
@@ -57,9 +57,17 @@ describe("WienerError", () => {
 
   it("WienerError supports all canonical codes", () => {
     const codes = [
-      "auth-required", "auth-expired", "canvas-not-configured",
-      "canvas-token-invalid", "course-not-found", "course-ambiguous",
-      "network-error", "rate-limited", "parse-error", "validation-error", "not-implemented"
+      "auth-required",
+      "auth-expired",
+      "canvas-not-configured",
+      "canvas-token-invalid",
+      "course-not-found",
+      "course-ambiguous",
+      "network-error",
+      "rate-limited",
+      "parse-error",
+      "validation-error",
+      "not-implemented",
     ] as const;
 
     for (const code of codes) {

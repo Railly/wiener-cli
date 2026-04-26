@@ -1,12 +1,12 @@
 // wiener tareas semana — due in next 7 days
 
-import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
-import { ok } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
-import { isWithinDays } from "../../lib/time.js";
 import pc from "picocolors";
+import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { ok } from "../../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
+import { isWithinDays } from "../../lib/time.js";
 
 export async function runTareasSemana(opts: { json?: boolean; dias?: number }): Promise<void> {
   try {
@@ -47,15 +47,23 @@ export async function runTareasSemana(opts: { json?: boolean; dias?: number }): 
       estado: t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
     }));
 
-    console.log(renderSection(`Tareas — próximos ${dias} días`, renderTable(rows, [
-      { header: "ID", key: "id" },
-      { header: "Nombre", key: "nombre", maxWidth: 50 },
-      { header: "Vencimiento", key: "vencimiento" },
-      { header: "Pts", key: "puntos" },
-      { header: "Estado", key: "estado" },
-    ])));
+    console.log(
+      renderSection(
+        `Tareas — próximos ${dias} días`,
+        renderTable(rows, [
+          { header: "ID", key: "id" },
+          { header: "Nombre", key: "nombre", maxWidth: 50 },
+          { header: "Vencimiento", key: "vencimiento" },
+          { header: "Pts", key: "puntos" },
+          { header: "Estado", key: "estado" },
+        ]),
+      ),
+    );
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

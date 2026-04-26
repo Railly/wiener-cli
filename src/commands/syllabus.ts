@@ -1,16 +1,16 @@
 // wiener syllabus <ref>
 
+import pc from "picocolors";
 import { fetchCourse } from "../lib/api/canvas/courses.js";
 import { fetchActiveCourses } from "../lib/api/canvas/courses.js";
-import { resolveCourse } from "../lib/courses/resolver.js";
 import { groupBySection } from "../lib/courses/grouping.js";
-import { ok, err } from "../lib/output/envelope.js";
-import { emit } from "../lib/output/json.js";
-import { renderSection, htmlToText } from "../lib/output/human.js";
+import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
+import { err, ok } from "../lib/output/envelope.js";
+import { htmlToText, renderSection } from "../lib/output/human.js";
+import { emit } from "../lib/output/json.js";
 import type { CanvasCourse } from "../types/canvas.js";
-import type { Course, SectionType } from "../types/course.js";
-import pc from "picocolors";
+import type { Course } from "../types/course.js";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -31,7 +31,7 @@ export async function runSyllabus(
     json?: boolean;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -40,7 +40,10 @@ export async function runSyllabus(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -57,10 +60,17 @@ export async function runSyllabus(
     const syllabusHtml = courseDetail.syllabus_body ?? "";
     const syllabusText = syllabusHtml ? htmlToText(syllabusHtml) : "";
 
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, syllabus_html: syllabusHtml, syllabus_text: syllabusText };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (!syllabusText) {
       console.log(pc.dim(`No hay silabo disponible para ${resolvedCourse.code}.`));
@@ -69,7 +79,10 @@ export async function runSyllabus(
 
     console.log(renderSection(`Silabo — ${resolvedCourse.code}`, syllabusText));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../lib/auth/store.ts";
 import { fetchExamenes } from "../lib/api/intranet/examenes.ts";
-import { ok, err } from "../lib/output/envelope.ts";
-import { emit, emitError } from "../lib/output/json.ts";
+import { loadIntranetSession } from "../lib/auth/store.ts";
 import { isWienerError } from "../lib/errors.ts";
+import { err, ok } from "../lib/output/envelope.ts";
+import { emit, emitError } from "../lib/output/json.ts";
 
 export function makeExamenesCommand(): Command {
   return new Command("examenes")
@@ -26,8 +26,10 @@ export function makeExamenesCommand(): Command {
         }
 
         console.log("\nRol de Exámenes\n");
-        console.log("  Fecha        Hora     Curso                                      Modalidad    Aula");
-        console.log("  " + "─".repeat(90));
+        console.log(
+          "  Fecha        Hora     Curso                                      Modalidad    Aula",
+        );
+        console.log(`  ${"─".repeat(90)}`);
         for (const e of data.examenes) {
           console.log(
             `  ${e.fecha.padEnd(12)} ${e.hora.padEnd(8)} ${e.curso.slice(0, 40).padEnd(40)} ${e.modalidad.padEnd(12)} ${e.aula}`,

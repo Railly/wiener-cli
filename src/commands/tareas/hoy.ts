@@ -1,12 +1,12 @@
 // wiener tareas hoy — due today (America/Lima) + overdue
 
-import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
-import { ok } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
-import { isToday, isPast } from "../../lib/time.js";
 import pc from "picocolors";
+import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { ok } from "../../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
+import { isPast, isToday } from "../../lib/time.js";
 
 export async function runTareasHoy(opts: { json?: boolean; fields?: string }): Promise<void> {
   try {
@@ -48,12 +48,17 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
         vencio: formatDate(t.due_at),
         estado: t.submitted ? pc.yellow("entregado tarde") : pc.red("ATRASADA"),
       }));
-      console.log(renderSection("Atrasadas", renderTable(rows, [
-        { header: "ID", key: "id" },
-        { header: "Nombre", key: "nombre", maxWidth: 45 },
-        { header: "Venció", key: "vencio" },
-        { header: "Estado", key: "estado" },
-      ])));
+      console.log(
+        renderSection(
+          "Atrasadas",
+          renderTable(rows, [
+            { header: "ID", key: "id" },
+            { header: "Nombre", key: "nombre", maxWidth: 45 },
+            { header: "Venció", key: "vencio" },
+            { header: "Estado", key: "estado" },
+          ]),
+        ),
+      );
     }
 
     if (hoy.length > 0) {
@@ -63,15 +68,23 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
         vencimiento: formatDate(t.due_at),
         estado: t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
       }));
-      console.log(renderSection("Hoy", renderTable(rows, [
-        { header: "ID", key: "id" },
-        { header: "Nombre", key: "nombre", maxWidth: 45 },
-        { header: "Vencimiento", key: "vencimiento" },
-        { header: "Estado", key: "estado" },
-      ])));
+      console.log(
+        renderSection(
+          "Hoy",
+          renderTable(rows, [
+            { header: "ID", key: "id" },
+            { header: "Nombre", key: "nombre", maxWidth: 45 },
+            { header: "Vencimiento", key: "vencimiento" },
+            { header: "Estado", key: "estado" },
+          ]),
+        ),
+      );
     }
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

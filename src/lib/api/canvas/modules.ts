@@ -10,3 +10,5 @@ export async function fetchModules(courseId: number): Promise<CanvasModule[]> {
   });
   return res.data;
 }
+
+export const getModulesWithItems = fetchModules;

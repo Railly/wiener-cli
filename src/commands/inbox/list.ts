@@ -1,11 +1,11 @@
 // wiener inbox [--no-leidos]
 
-import { fetchConversations } from "../../lib/api/canvas/conversations.js";
-import { ok } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
 import pc from "picocolors";
+import { fetchConversations } from "../../lib/api/canvas/conversations.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { ok } from "../../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
 
 export async function runInbox(opts: {
   json?: boolean;
@@ -26,7 +26,10 @@ export async function runInbox(opts: {
 
     const data = { conversaciones };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (conversaciones.length === 0) {
       console.log(pc.green(opts.noLeidos ? "No hay mensajes no leídos." : "No hay mensajes."));
@@ -42,16 +45,24 @@ export async function runInbox(opts: {
       leido: c.unread ? pc.yellow("NO") : pc.dim("sí"),
     }));
 
-    console.log(renderSection("Inbox", renderTable(rows, [
-      { header: "ID", key: "id" },
-      { header: "De", key: "de", maxWidth: 30 },
-      { header: "Asunto", key: "asunto", maxWidth: 40 },
-      { header: "Último", key: "ultimo" },
-      { header: "Msgs", key: "mensajes" },
-      { header: "Leído", key: "leido" },
-    ])));
+    console.log(
+      renderSection(
+        "Inbox",
+        renderTable(rows, [
+          { header: "ID", key: "id" },
+          { header: "De", key: "de", maxWidth: 30 },
+          { header: "Asunto", key: "asunto", maxWidth: 40 },
+          { header: "Último", key: "ultimo" },
+          { header: "Msgs", key: "mensajes" },
+          { header: "Leído", key: "leido" },
+        ]),
+      ),
+    );
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

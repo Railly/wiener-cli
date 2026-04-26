@@ -17,53 +17,56 @@ import { registerCursosFavoritos } from "./commands/cursos/favoritos.js";
 import { registerCursosInfo } from "./commands/cursos/info.js";
 import { registerCursosList } from "./commands/cursos/list.js";
 
+import { makeAsistenciaCommand } from "./commands/asistencia.js";
+import { makeExamenesCommand } from "./commands/examenes.js";
+import { makeHistorialCommand } from "./commands/historial.js";
+import { makeHorarioAhoraCommand } from "./commands/horario/ahora.js";
+import { makeHorarioHoyCommand } from "./commands/horario/hoy.js";
+import { makeHorarioCommand } from "./commands/horario/week.js";
+import { makeMatriculaCommand } from "./commands/matricula.js";
 // Phase B: Intranet read commands
 import { makeNotasCommand } from "./commands/notas/list.js";
-import { makeHorarioCommand } from "./commands/horario/week.js";
-import { makeHorarioHoyCommand } from "./commands/horario/hoy.js";
-import { makeHorarioAhoraCommand } from "./commands/horario/ahora.js";
-import { makeAsistenciaCommand } from "./commands/asistencia.js";
-import { makePlanCommand } from "./commands/plan/list.js";
-import { makeHistorialCommand } from "./commands/historial.js";
-import { makeExamenesCommand } from "./commands/examenes.js";
-import { makeMatriculaCommand } from "./commands/matricula.js";
-import { makePerfilCommand } from "./commands/perfil.js";
 import { makePagosCommand } from "./commands/pagos/list.js";
+import { makePerfilCommand } from "./commands/perfil.js";
+import { makePlanCommand } from "./commands/plan/list.js";
 import { makeTramiteCommand } from "./commands/tramite/list.js";
 
-// Phase C: Canvas read commands
-import { runTareasList, runTareasByCourse } from "./commands/tareas/list.js";
-import { runTareasHoy } from "./commands/tareas/hoy.js";
-import { runTareasSemana } from "./commands/tareas/semana.js";
-import { runTareasInfo } from "./commands/tareas/info.js";
-import { runPlanner } from "./commands/planner.js";
-import { runCalificaciones } from "./commands/calificaciones/list.js";
-import { runCalificacionesDetail } from "./commands/calificaciones/detail.js";
-import { runAnuncios } from "./commands/anuncios/list.js";
 import { runAnunciosByCourse } from "./commands/anuncios/by-course.js";
 import { runAnunciosGlobales } from "./commands/anuncios/globales.js";
-import { runArchivos } from "./commands/archivos/list.js";
+import { runAnuncios } from "./commands/anuncios/list.js";
 import { runArchivosArbol } from "./commands/archivos/arbol.js";
-import { runModulos } from "./commands/modulos.js";
-import { runSyllabus } from "./commands/syllabus.js";
-import { runPaginas } from "./commands/paginas.js";
-import { runDiscusiones } from "./commands/discusiones.js";
-import { runQuizzes } from "./commands/quizzes.js";
-import { runConferencias } from "./commands/conferencias.js";
-import { runCalendario } from "./commands/calendario/list.js";
+import { runArchivos } from "./commands/archivos/list.js";
 import { runCalendarioIcs } from "./commands/calendario/ics.js";
-import { runInbox } from "./commands/inbox/list.js";
+import { runCalendario } from "./commands/calendario/list.js";
+import { runCalificacionesDetail } from "./commands/calificaciones/detail.js";
+import { runCalificaciones } from "./commands/calificaciones/list.js";
+import { runConferencias } from "./commands/conferencias.js";
+import { runDiscusiones } from "./commands/discusiones.js";
 import { runInboxInfo } from "./commands/inbox/info.js";
+import { runInbox } from "./commands/inbox/list.js";
+import { runModulos } from "./commands/modulos.js";
+import { runPaginas } from "./commands/paginas.js";
+import { runPlanner } from "./commands/planner.js";
+import { runQuizzes } from "./commands/quizzes.js";
+import { runSyllabus } from "./commands/syllabus.js";
+import { runTareasHoy } from "./commands/tareas/hoy.js";
+import { runTareasInfo } from "./commands/tareas/info.js";
+// Phase C: Canvas read commands
+import { runTareasByCourse, runTareasList } from "./commands/tareas/list.js";
+import { runTareasSemana } from "./commands/tareas/semana.js";
 import type { SectionType } from "./types/course.js";
 
 import { registerConfig } from "./commands/config.js";
 import { registerDoctor } from "./commands/doctor.js";
 import { registerSchema } from "./commands/schema.js";
 
-import { NotImplementedError } from "./lib/errors.js";
-import { err } from "./lib/output/envelope.js";
-import { printError } from "./lib/output/human.js";
-import { emitJson } from "./lib/output/json.js";
+// Phase D: panorama + daily commands
+import { registerRoot } from "./commands/_root.js";
+import { registerAhora } from "./commands/ahora.js";
+import { registerHoy } from "./commands/hoy.js";
+import { registerNuevo } from "./commands/nuevo.js";
+import { registerSemana } from "./commands/semana.js";
+import { registerWatch } from "./commands/watch.js";
 
 const program = new Command();
 
@@ -79,13 +82,7 @@ program
 // them only on subcommands ensures the subcommand action receives them.
 
 // Default action: panorama (Phase D)
-program.action((opts: { json?: boolean }) => {
-  const e = new NotImplementedError("wiener (panorama)");
-  if (opts.json) emitJson(err(e.code, e.message, e.hint));
-  printError(e.code, e.message, e.hint);
-  console.log("  Hint: run `wiener --help` to see all available commands");
-  process.exit(1);
-});
+registerRoot(program);
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
@@ -146,12 +143,12 @@ function parseGlobalFlags(opts: Record<string, unknown>): {
   seccion?: SectionType;
 } {
   return {
-    json: Boolean(opts["json"]),
-    ndjson: Boolean(opts["ndjson"]),
-    noInput: Boolean(opts["noInput"]) || !process.stdin.isTTY,
-    exact: Boolean(opts["exact"]),
-    fields: opts["fields"] as string | undefined,
-    seccion: opts["seccion"] as SectionType | undefined,
+    json: Boolean(opts.json),
+    ndjson: Boolean(opts.ndjson),
+    noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+    exact: Boolean(opts.exact),
+    fields: opts.fields as string | undefined,
+    seccion: opts.seccion as SectionType | undefined,
   };
 }
 
@@ -181,22 +178,22 @@ tareas.action(async (ref, opts) => {
   }
 });
 
-addGlobalFlags(
-  tareas.command("hoy").description("Tareas que vencen hoy o están atrasadas"),
-).action(async (opts, cmd) => {
-  const merged = cmd.optsWithGlobals() as Record<string, unknown>;
-  await runTareasHoy(parseGlobalFlags(merged));
-});
+addGlobalFlags(tareas.command("hoy").description("Tareas que vencen hoy o están atrasadas")).action(
+  async (_opts, cmd) => {
+    const merged = cmd.optsWithGlobals() as Record<string, unknown>;
+    await runTareasHoy(parseGlobalFlags(merged));
+  },
+);
 
 addGlobalFlags(
   tareas
     .command("semana")
     .description("Tareas que vencen en los próximos 7 días")
     .option("--dias <n>", "Días a mostrar", "7"),
-).action(async (opts, cmd) => {
+).action(async (_opts, cmd) => {
   const merged = cmd.optsWithGlobals() as Record<string, unknown>;
   const g = parseGlobalFlags(merged);
-  await runTareasSemana({ ...g, dias: parseInt(String(merged["dias"] ?? "7"), 10) });
+  await runTareasSemana({ ...g, dias: Number.parseInt(String(merged.dias ?? "7"), 10) });
 });
 
 addGlobalFlags(
@@ -204,10 +201,10 @@ addGlobalFlags(
     .command("info <assignment-id>")
     .description("Detalle de una tarea (requiere --curso)")
     .requiredOption("--curso <ref>", "Curso al que pertenece la tarea"),
-).action(async (assignmentId, opts, cmd) => {
+).action(async (assignmentId, _opts, cmd) => {
   const merged = cmd.optsWithGlobals() as Record<string, unknown>;
   const g = parseGlobalFlags(merged);
-  await runTareasInfo(String(assignmentId), { ...g, curso: merged["curso"] as string });
+  await runTareasInfo(String(assignmentId), { ...g, curso: merged.curso as string });
 });
 
 program.addCommand(tareas);
@@ -220,7 +217,7 @@ addGlobalFlags(
     .option("--dias <n>", "Días hacia adelante", "14"),
 ).action(async (opts) => {
   const g = parseGlobalFlags(opts);
-  await runPlanner({ ...g, dias: parseInt(String(opts["dias"] ?? "14"), 10) });
+  await runPlanner({ ...g, dias: Number.parseInt(String(opts.dias ?? "14"), 10) });
 });
 
 // wiener calificaciones
@@ -252,20 +249,23 @@ const anuncios = addGlobalFlags(
 
 anuncios.action(async (ref, opts) => {
   const g = parseGlobalFlags(opts);
-  const n = parseInt(String(opts["ultimos"] ?? "5"), 10);
+  const n = Number.parseInt(String(opts.ultimos ?? "5"), 10);
   if (ref) {
-    await runAnunciosByCourse(String(ref), { ...g, full: Boolean(opts["full"]), ultimos: n });
+    await runAnunciosByCourse(String(ref), { ...g, full: Boolean(opts.full), ultimos: n });
   } else {
-    await runAnuncios({ ...g, full: Boolean(opts["full"]), ultimos: n });
+    await runAnuncios({ ...g, full: Boolean(opts.full), ultimos: n });
   }
 });
 
 addGlobalFlags(
-  anuncios.command("globales").description("Anuncios institucionales (cuenta global)").option("--full"),
-).action(async (opts, cmd) => {
+  anuncios
+    .command("globales")
+    .description("Anuncios institucionales (cuenta global)")
+    .option("--full"),
+).action(async (_opts, cmd) => {
   const merged = cmd.optsWithGlobals() as Record<string, unknown>;
   const g = parseGlobalFlags(merged);
-  await runAnunciosGlobales({ ...g, full: Boolean(merged["full"]) });
+  await runAnunciosGlobales({ ...g, full: Boolean(merged.full) });
 });
 
 program.addCommand(anuncios);
@@ -282,31 +282,31 @@ archivos.action(async (ref, opts) => {
   await runArchivos(String(ref), g);
 });
 
-addGlobalFlags(
-  archivos.command("arbol <ref>").description("Árbol de carpetas y archivos"),
-).action(async (ref, opts, cmd) => {
-  const merged = cmd.optsWithGlobals() as Record<string, unknown>;
-  const g = parseGlobalFlags(merged);
-  await runArchivosArbol(String(ref), g);
-});
+addGlobalFlags(archivos.command("arbol <ref>").description("Árbol de carpetas y archivos")).action(
+  async (ref, _opts, cmd) => {
+    const merged = cmd.optsWithGlobals() as Record<string, unknown>;
+    const g = parseGlobalFlags(merged);
+    await runArchivosArbol(String(ref), g);
+  },
+);
 
 program.addCommand(archivos);
 
 // wiener modulos
-addGlobalFlags(
-  program.command("modulos <ref>").description("Módulos del curso con items"),
-).action(async (ref, opts) => {
-  const g = parseGlobalFlags(opts);
-  await runModulos(String(ref), g);
-});
+addGlobalFlags(program.command("modulos <ref>").description("Módulos del curso con items")).action(
+  async (ref, opts) => {
+    const g = parseGlobalFlags(opts);
+    await runModulos(String(ref), g);
+  },
+);
 
 // wiener syllabus
-addGlobalFlags(
-  program.command("syllabus <ref>").description("Silabo del curso"),
-).action(async (ref, opts) => {
-  const g = parseGlobalFlags(opts);
-  await runSyllabus(String(ref), g);
-});
+addGlobalFlags(program.command("syllabus <ref>").description("Silabo del curso")).action(
+  async (ref, opts) => {
+    const g = parseGlobalFlags(opts);
+    await runSyllabus(String(ref), g);
+  },
+);
 
 // wiener paginas
 addGlobalFlags(
@@ -316,7 +316,7 @@ addGlobalFlags(
     .option("--full", "Incluir cuerpo de cada página"),
 ).action(async (ref, opts) => {
   const g = parseGlobalFlags(opts);
-  await runPaginas(String(ref), { ...g, full: Boolean(opts["full"]) });
+  await runPaginas(String(ref), { ...g, full: Boolean(opts.full) });
 });
 
 // wiener discusiones
@@ -327,16 +327,16 @@ addGlobalFlags(
     .option("--full", "Incluir mensaje completo"),
 ).action(async (ref, opts) => {
   const g = parseGlobalFlags(opts);
-  await runDiscusiones(String(ref), { ...g, full: Boolean(opts["full"]) });
+  await runDiscusiones(String(ref), { ...g, full: Boolean(opts.full) });
 });
 
 // wiener quizzes
-addGlobalFlags(
-  program.command("quizzes <ref>").description("Quizzes del curso"),
-).action(async (ref, opts) => {
-  const g = parseGlobalFlags(opts);
-  await runQuizzes(String(ref), g);
-});
+addGlobalFlags(program.command("quizzes <ref>").description("Quizzes del curso")).action(
+  async (ref, opts) => {
+    const g = parseGlobalFlags(opts);
+    await runQuizzes(String(ref), g);
+  },
+);
 
 // wiener conferencias
 addGlobalFlags(
@@ -357,34 +357,36 @@ addGlobalFlags(
     .option("--curso <ref>", "Curso específico (para --ics)"),
 ).action(async (opts) => {
   const g = parseGlobalFlags(opts);
-  if (opts["ics"]) {
+  if (opts.ics) {
     await runCalendarioIcs({
       ...g,
-      out: opts["out"] as string | undefined,
-      curso: opts["curso"] as string | undefined,
+      out: opts.out as string | undefined,
+      curso: opts.curso as string | undefined,
     });
   } else {
-    await runCalendario({ ...g, dias: parseInt(String(opts["dias"] ?? "7"), 10) });
+    await runCalendario({ ...g, dias: Number.parseInt(String(opts.dias ?? "7"), 10) });
   }
 });
 
 // wiener inbox
 const inbox = addGlobalFlags(
-  new Command("inbox").description("Mensajes Canvas").option("--no-leidos", "Solo mensajes no leídos"),
+  new Command("inbox")
+    .description("Mensajes Canvas")
+    .option("--no-leidos", "Solo mensajes no leídos"),
 );
 
 inbox.action(async (opts) => {
   const g = parseGlobalFlags(opts);
-  await runInbox({ ...g, noLeidos: Boolean(opts["noLeidos"]) });
+  await runInbox({ ...g, noLeidos: Boolean(opts.noLeidos) });
 });
 
-addGlobalFlags(
-  inbox.command("info <id>").description("Detalle de una conversación"),
-).action(async (id, opts, cmd) => {
-  const merged = cmd.optsWithGlobals() as Record<string, unknown>;
-  const g = parseGlobalFlags(merged);
-  await runInboxInfo(String(id), g);
-});
+addGlobalFlags(inbox.command("info <id>").description("Detalle de una conversación")).action(
+  async (id, _opts, cmd) => {
+    const merged = cmd.optsWithGlobals() as Record<string, unknown>;
+    const g = parseGlobalFlags(merged);
+    await runInboxInfo(String(id), g);
+  },
+);
 
 program.addCommand(inbox);
 
@@ -445,7 +447,7 @@ addGlobalFlags(
     .option("--ultimos <n>", "Últimos N", "5"),
 ).action(async (ref, opts) => {
   const g = parseGlobalFlags(opts);
-  const n = parseInt(String(opts["ultimos"] ?? "5"), 10);
+  const n = Number.parseInt(String(opts.ultimos ?? "5"), 10);
   if (ref) {
     await runAnunciosByCourse(String(ref), { ...g, ultimos: n });
   } else {
@@ -471,10 +473,18 @@ addGlobalFlags(
     .option("--dias <n>", "Días", "7"),
 ).action(async (opts) => {
   const g = parseGlobalFlags(opts);
-  await runCalendario({ ...g, dias: parseInt(String(opts["dias"] ?? "7"), 10) });
+  await runCalendario({ ...g, dias: Number.parseInt(String(opts.dias ?? "7"), 10) });
 });
 
 program.addCommand(canvas);
+
+// ─── Phase D: daily snapshot commands ────────────────────────────────────────
+
+registerHoy(program);
+registerAhora(program);
+registerSemana(program);
+registerNuevo(program);
+registerWatch(program);
 
 // ─── Core commands ────────────────────────────────────────────────────────────
 

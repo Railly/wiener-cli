@@ -1,17 +1,17 @@
 // wiener paginas <ref>
 
-import { fetchPages, fetchPage } from "../lib/api/canvas/pages.js";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../lib/api/canvas/courses.js";
-import { resolveCourse } from "../lib/courses/resolver.js";
+import { fetchPage, fetchPages } from "../lib/api/canvas/pages.js";
 import { groupBySection } from "../lib/courses/grouping.js";
-import { pMap } from "../lib/parallel.js";
-import { ok, err } from "../lib/output/envelope.js";
-import { emit } from "../lib/output/json.js";
-import { renderTable, renderSection, formatDate, htmlToText } from "../lib/output/human.js";
+import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
+import { err, ok } from "../lib/output/envelope.js";
+import { formatDate, htmlToText, renderSection, renderTable } from "../lib/output/human.js";
+import { emit } from "../lib/output/json.js";
+import { pMap } from "../lib/parallel.js";
 import type { CanvasCourse } from "../types/canvas.js";
 import type { Course, SectionType } from "../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -34,7 +34,7 @@ export async function runPaginas(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -43,7 +43,10 @@ export async function runPaginas(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -53,7 +56,9 @@ export async function runPaginas(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allPages = await pMap(
@@ -63,13 +68,17 @@ export async function runPaginas(
         if (!opts.full) {
           return pages.map((p) => ({ ...p, body: undefined, seccion: s.seccion }));
         }
-        const withBody = await pMap(pages, async (p) => {
-          const full = await fetchPage(s.id, p.url);
-          return { ...full, seccion: s.seccion };
-        }, 2);
+        const withBody = await pMap(
+          pages,
+          async (p) => {
+            const full = await fetchPage(s.id, p.url);
+            return { ...full, seccion: s.seccion };
+          },
+          2,
+        );
         return withBody;
       },
-      4
+      4,
     );
 
     const paginas = allPages.flat().map((p) => ({
@@ -80,10 +89,17 @@ export async function runPaginas(
       seccion: (p as { seccion?: SectionType }).seccion ?? "T",
     }));
 
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, paginas };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (paginas.length === 0) {
       console.log(pc.dim(`No hay páginas en ${resolvedCourse.code}.`));
@@ -95,7 +111,7 @@ export async function runPaginas(
       titulo: p.title,
       url: p.url,
       actualizado: formatDate(p.updated_at),
-      ...(opts.full && p.body ? { cuerpo: p.body.slice(0, 100) + "…" } : {}),
+      ...(opts.full && p.body ? { cuerpo: `${p.body.slice(0, 100)}…` } : {}),
     }));
 
     const columns = [
@@ -108,7 +124,10 @@ export async function runPaginas(
 
     console.log(renderSection(`Páginas — ${resolvedCourse.code}`, renderTable(rows, columns)));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

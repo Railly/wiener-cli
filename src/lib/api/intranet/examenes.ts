@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseExamenes } from "../../parsers/examenes-table.ts";
-import type { IntranetSession, ExamenesData } from "../../../types/intranet.ts";
+import type { ExamenesData, IntranetSession } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseExamenes } from "../../parsers/examenes-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const EXAMENES_PATH = "/Alumno/DatosAcademicos/RolExamenes/RolExamenes.asp";
 

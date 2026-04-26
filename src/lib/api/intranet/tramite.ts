@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseTramite } from "../../parsers/tramite-table.ts";
 import type { IntranetSession, TramiteData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseTramite } from "../../parsers/tramite-table.ts";
+import { intranetFetch } from "./client.ts";
 
 // Recon flagged but didn't fully enter tramite page — best guess at path
 const TRAMITE_PATH = "/Alumno/tramiteAcademico/inicio.asp";
@@ -10,7 +10,11 @@ export async function fetchTramites(session: IntranetSession): Promise<TramiteDa
   try {
     const response = await intranetFetch(TRAMITE_PATH, session);
 
-    if (response.status === 404 || response.text.includes("404") || response.text.includes("not found")) {
+    if (
+      response.status === 404 ||
+      response.text.includes("404") ||
+      response.text.includes("not found")
+    ) {
       throw new WienerError(
         "not-implemented",
         "Trámite page path not confirmed. Needs validation against real session.",

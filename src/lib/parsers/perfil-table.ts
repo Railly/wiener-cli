@@ -37,9 +37,17 @@ export function parsePerfil(html: string): PerfilData {
         perfil.facultad = perfil.facultad || val;
       } else if (label.includes("email") || label.includes("correo")) {
         perfil.email = perfil.email || val;
-      } else if (label.includes("teléfono") || label.includes("telefono") || label.includes("celular")) {
+      } else if (
+        label.includes("teléfono") ||
+        label.includes("telefono") ||
+        label.includes("celular")
+      ) {
         perfil.telefono = perfil.telefono || val;
-      } else if (label.includes("dirección") || label.includes("direccion") || label.includes("domicilio")) {
+      } else if (
+        label.includes("dirección") ||
+        label.includes("direccion") ||
+        label.includes("domicilio")
+      ) {
         perfil.direccion = perfil.direccion || val;
       } else if (label.includes("ciclo")) {
         perfil.ciclo = perfil.ciclo || val;

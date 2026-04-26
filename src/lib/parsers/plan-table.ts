@@ -1,13 +1,13 @@
 import * as cheerio from "cheerio";
-import type { PlanData, PlanCiclo, PlanCurso, PlanAvanceData } from "../../types/intranet.ts";
+import type { PlanAvanceData, PlanCiclo, PlanCurso, PlanData } from "../../types/intranet.ts";
 
 function parseNumber(raw: string): number {
-  const n = parseFloat(raw.trim().replace(",", ".").replace("%", ""));
+  const n = Number.parseFloat(raw.trim().replace(",", ".").replace("%", ""));
   return Number.isFinite(n) ? n : 0;
 }
 
 function parseInteger(raw: string): number {
-  const n = parseInt(raw.trim(), 10);
+  const n = Number.parseInt(raw.trim(), 10);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -40,10 +40,7 @@ export function parsePlan(html: string): PlanData {
     const texts = cells.map((_, c) => normalizeWhitespace($(c).text())).get();
 
     // Detect ciclo header row
-    if (
-      texts.length === 1 ||
-      texts.some((t) => /^(ciclo|semestre)\s*[IVX0-9]/i.test(t))
-    ) {
+    if (texts.length === 1 || texts.some((t) => /^(ciclo|semestre)\s*[IVX0-9]/i.test(t))) {
       const cicloText = texts.find((t) => /^(ciclo|semestre|^[IVX]+$|\d+)/i.test(t));
       if (cicloText) {
         currentCiclo = { ciclo: cicloText.trim(), cursos: [] };

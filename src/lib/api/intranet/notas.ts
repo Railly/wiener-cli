@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseNotas, parsePeriodos } from "../../parsers/notas-table.ts";
 import type { IntranetSession, NotasData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseNotas, parsePeriodos } from "../../parsers/notas-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const NOTAS_PATH = "/Alumno/Datosacademicos/notas/NOTAS.asp";
 
@@ -10,7 +10,7 @@ export async function fetchNotas(
   periodo?: string,
 ): Promise<{ data: NotasData; periodos: string[] }> {
   let path = NOTAS_PATH;
-  let method: "GET" | "POST" = "GET";
+  const method: "GET" | "POST" = "GET";
   let body: string | undefined;
 
   if (periodo) {

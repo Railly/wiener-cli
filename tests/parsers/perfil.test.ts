@@ -1,10 +1,9 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parsePerfil } from "../../src/lib/parsers/perfil-table.ts";
 
-const fixture = (name: string) =>
-  readFileSync(join(import.meta.dir, "../fixtures", name), "utf-8");
+const fixture = (name: string) => readFileSync(join(import.meta.dir, "../fixtures", name), "utf-8");
 
 describe("parsePerfil", () => {
   test("parses codigo", () => {

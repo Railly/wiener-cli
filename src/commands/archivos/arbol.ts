@@ -1,17 +1,17 @@
 // wiener archivos arbol <ref> — folder tree for a course
 
-import { buildFileTree } from "../../lib/api/canvas/files.js";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { resolveCourse } from "../../lib/courses/resolver.js";
-import { groupBySection } from "../../lib/courses/grouping.js";
-import { ok, err } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { formatBytes } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
+import { buildFileTree } from "../../lib/api/canvas/files.js";
 import type { FileTreeNode } from "../../lib/api/canvas/files.js";
+import { groupBySection } from "../../lib/courses/grouping.js";
+import { resolveCourse } from "../../lib/courses/resolver.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { err, ok } from "../../lib/output/envelope.js";
+import { formatBytes } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course, SectionType } from "../../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -58,7 +58,7 @@ export async function runArchivosArbol(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -67,7 +67,10 @@ export async function runArchivosArbol(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -77,21 +80,30 @@ export async function runArchivosArbol(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const primarySection = opts.seccion
-      ? secciones.find((s) => s.seccion === opts.seccion) ?? secciones[0]
+      ? (secciones.find((s) => s.seccion === opts.seccion) ?? secciones[0])
       : secciones[0];
 
     if (!primarySection) {
       const errEnv = err("course-not-found", "No sections found");
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write("No sections found\n");
       process.exit(1);
       return;
     }
 
     const root = await buildFileTree(primarySection.id);
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
 
     if (opts.json) {
       emit(ok({ curso: cursoInfo, root: root ? serializeTree(root) : null }));
@@ -105,7 +117,10 @@ export async function runArchivosArbol(
     }
     printTree(root);
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

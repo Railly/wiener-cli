@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchPagos, fetchPagosHistorial } from "../../lib/api/intranet/pagos.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
 
 export function makePagosCommand(): Command {
   const cmd = new Command("pagos")
@@ -27,15 +27,17 @@ export function makePagosCommand(): Command {
           return;
         }
 
-        console.log("  Concepto                                         Monto (S/)   Vencimiento  Estado");
-        console.log("  " + "─".repeat(90));
+        console.log(
+          "  Concepto                                         Monto (S/)   Vencimiento  Estado",
+        );
+        console.log(`  ${"─".repeat(90)}`);
         for (const item of data.items) {
           const monto = `S/. ${item.monto.toFixed(2)}`.padStart(12);
           console.log(
             `  ${item.concepto.slice(0, 48).padEnd(48)} ${monto}   ${(item.vencimiento ?? "—").padEnd(12)} ${item.estado}`,
           );
         }
-        console.log("  " + "─".repeat(90));
+        console.log(`  ${"─".repeat(90)}`);
         console.log(`  Total pendiente: S/. ${data.total_pendiente.toFixed(2)}`);
       } catch (e) {
         if (isWienerError(e)) {
@@ -69,12 +71,10 @@ export function makePagosCommand(): Command {
 
         console.log("\nHistorial de Pagos\n");
         console.log("  Concepto                                         Monto (S/)   Fecha Pago");
-        console.log("  " + "─".repeat(75));
+        console.log(`  ${"─".repeat(75)}`);
         for (const p of data.pagos) {
           const monto = `S/. ${p.monto.toFixed(2)}`.padStart(12);
-          console.log(
-            `  ${p.concepto.slice(0, 48).padEnd(48)} ${monto}   ${p.fecha_pago ?? "—"}`,
-          );
+          console.log(`  ${p.concepto.slice(0, 48).padEnd(48)} ${monto}   ${p.fecha_pago ?? "—"}`);
         }
       } catch (e) {
         if (isWienerError(e)) {

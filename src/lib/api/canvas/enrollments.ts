@@ -1,6 +1,6 @@
 import type { CanvasEnrollment } from "../../../types/canvas.js";
-import { canvasFetchAll } from "./client.js";
 import { getFromCache, setCache } from "../../cache/kv.js";
+import { canvasFetchAll } from "./client.js";
 
 export async function fetchStudentEnrollments(): Promise<CanvasEnrollment[]> {
   const cacheUrl = "/api/v1/users/self/enrollments?student";

@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parsePlan, parsePlanAvance } from "../../parsers/plan-table.ts";
-import type { IntranetSession, PlanData, PlanAvanceData } from "../../../types/intranet.ts";
+import type { IntranetSession, PlanAvanceData, PlanData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parsePlan, parsePlanAvance } from "../../parsers/plan-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const PLAN_PATH = "/Alumno/matricula/plandeestudio/plandeEstudio.asp";
 const PLAN_AVANCE_PATH = "/Alumno/matricula/plandeestudio/plandeEstudioVigente.asp";

@@ -1,5 +1,5 @@
 import type { CanvasFile, CanvasFolder } from "../../../types/canvas.js";
-import { canvasFetch, canvasFetchAll } from "./client.js";
+import { canvasFetchAll } from "./client.js";
 
 export async function fetchCourseFiles(courseId: number): Promise<CanvasFile[]> {
   const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files`, {
@@ -33,6 +33,10 @@ export interface FileTreeNode {
   folder: CanvasFolder;
   files: CanvasFile[];
   subfolders: FileTreeNode[];
+}
+
+export async function listAllFiles(courseId: number): Promise<CanvasFile[]> {
+  return fetchCourseFiles(courseId);
 }
 
 export async function buildFileTree(courseId: number): Promise<FileTreeNode | null> {

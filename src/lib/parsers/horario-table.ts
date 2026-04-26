@@ -1,14 +1,14 @@
 import * as cheerio from "cheerio";
-import type { HorarioBloque, HorarioData, DiaCode } from "../../types/intranet.ts";
+import type { DiaCode, HorarioBloque, HorarioData } from "../../types/intranet.ts";
 
 const DAY_MAP: Record<string, DiaCode> = {
   lunes: "L",
   martes: "M",
-  "miércoles": "X",
+  miércoles: "X",
   miercoles: "X",
   jueves: "J",
   viernes: "V",
-  "sábado": "S",
+  sábado: "S",
   sabado: "S",
   domingo: "D",
   l: "L",
@@ -36,7 +36,7 @@ function parseTime(raw: string): string {
   const match = normalized.match(/(\d{1,2}):(\d{2})\s*(?:(a\.?\s*m\.?)|(p\.?\s*m\.?))?/);
   if (!match) return raw.trim();
 
-  let hours = parseInt(match[1] ?? "0", 10);
+  let hours = Number.parseInt(match[1] ?? "0", 10);
   const minutes = match[2] ?? "00";
   const isAm = !!match[3];
   const isPm = !!match[4];
@@ -98,7 +98,11 @@ export function parseHorario(html: string): HorarioData {
     $("p, caption").each((_, el) => {
       if (semana) return;
       const text = normalizeWhitespace($(el).text());
-      if (/\d{1,2}\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i.test(text)) {
+      if (
+        /\d{1,2}\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i.test(
+          text,
+        )
+      ) {
         semana = text;
       }
     });
@@ -222,7 +226,10 @@ export function parseHorario(html: string): HorarioData {
         if (codeMatch?.[1]) {
           bloque.course_code = codeMatch[1];
           const nameStart = line.indexOf(bloque.course_code) + bloque.course_code.length;
-          bloque.course_name = line.slice(nameStart).replace(/^[-\s]+/, "").trim();
+          bloque.course_name = line
+            .slice(nameStart)
+            .replace(/^[-\s]+/, "")
+            .trim();
           break;
         }
       }

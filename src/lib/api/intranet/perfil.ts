@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parsePerfil } from "../../parsers/perfil-table.ts";
 import type { IntranetSession, PerfilData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parsePerfil } from "../../parsers/perfil-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const PERFIL_PATH = "/Alumno/DatosPersonales/actualizarDatos.asp";
 

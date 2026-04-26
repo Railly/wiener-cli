@@ -3,7 +3,7 @@
 export async function pMap<T, R>(
   items: T[],
   fn: (item: T) => Promise<R>,
-  concurrency = 4
+  concurrency = 4,
 ): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let idx = 0;

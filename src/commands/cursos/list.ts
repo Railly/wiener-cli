@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { getActiveCourses } from "../../lib/api/canvas/courses.js";
+import { getActiveCoursesWithToken as getActiveCourses } from "../../lib/api/canvas/courses.js";
 import { loadCanvasSession } from "../../lib/auth/store.js";
 import { getProfileAliases } from "../../lib/courses/alias-store.js";
 import { generateAliasMap } from "../../lib/courses/auto-alias.js";

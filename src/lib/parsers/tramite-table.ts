@@ -32,7 +32,11 @@ export function parseTramite(html: string): TramiteData {
 
     if (
       headerTexts.some(
-        (h) => h.includes("trámite") || h.includes("tramite") || h.includes("tipo") || h.includes("solicitud"),
+        (h) =>
+          h.includes("trámite") ||
+          h.includes("tramite") ||
+          h.includes("tipo") ||
+          h.includes("solicitud"),
       )
     ) {
       dataTable = $(table);

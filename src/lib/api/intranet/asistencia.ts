@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parseAsistencia } from "../../parsers/asistencia-table.ts";
-import type { IntranetSession, AsistenciaData } from "../../../types/intranet.ts";
+import type { AsistenciaData, IntranetSession } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parseAsistencia } from "../../parsers/asistencia-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const ASISTENCIA_PATH = "/Alumno/Datosacademicos/Asistencia/asistencia.asp";
 

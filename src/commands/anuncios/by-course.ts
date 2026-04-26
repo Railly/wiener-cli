@@ -1,17 +1,17 @@
 // wiener anuncios <ref> — announcements for one logical course
 
+import pc from "picocolors";
 import { fetchAnnouncements } from "../../lib/api/canvas/announcements.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { resolveCourse } from "../../lib/courses/resolver.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
-import { ok, err } from "../../lib/output/envelope.js";
+import { resolveCourse } from "../../lib/courses/resolver.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { err, ok } from "../../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable, truncateHtml } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
-import { renderTable, renderSection, formatDate, truncateHtml } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course, SectionType } from "../../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -36,7 +36,7 @@ export async function runAnunciosByCourse(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -45,7 +45,10 @@ export async function runAnunciosByCourse(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -55,27 +58,45 @@ export async function runAnunciosByCourse(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
     const courseIds = filtered.map((s) => s.id);
 
     const n = opts.ultimos ?? 20;
     const rawAnuncios = await fetchAnnouncements(courseIds, n);
 
-    const anuncios = rawAnuncios.map((a) => ({
-      id: a.id,
-      title: a.title,
-      posted_at: a.posted_at,
-      author: a.author.display_name,
-      body: opts.full ? a.message : truncateHtml(a.message, 200),
-      url: a.html_url,
-    })).sort((a, b) => b.posted_at.localeCompare(a.posted_at));
+    const anuncios = rawAnuncios
+      .map((a) => ({
+        id: a.id,
+        title: a.title,
+        posted_at: a.posted_at,
+        author: a.author.display_name,
+        body: opts.full ? a.message : truncateHtml(a.message, 200),
+        url: a.html_url,
+      }))
+      .sort((a, b) => b.posted_at.localeCompare(a.posted_at));
 
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, anuncios };
 
-    if (opts.json) { emit(ok(data)); return; }
-    if (opts.ndjson) { await emitStream((async function* () { for (const a of anuncios) yield a; })()); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
+    if (opts.ndjson) {
+      await emitStream(
+        (async function* () {
+          for (const a of anuncios) yield a;
+        })(),
+      );
+      return;
+    }
 
     if (anuncios.length === 0) {
       console.log(pc.dim(`No hay anuncios en ${resolvedCourse.code}.`));
@@ -98,7 +119,10 @@ export async function runAnunciosByCourse(
 
     console.log(renderSection(`Anuncios — ${resolvedCourse.code}`, renderTable(rows, columns)));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

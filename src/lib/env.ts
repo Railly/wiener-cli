@@ -31,3 +31,5 @@ export function getConfigDir(): string {
 export function getProfileDir(profile = "default"): string {
   return `${getConfigDir()}/${profile}`;
 }
+
+export { loadConfig, saveConfig } from "./config.js";

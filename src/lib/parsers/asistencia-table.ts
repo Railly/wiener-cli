@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
-import type { AsistenciaData, AsistenciaCurso } from "../../types/intranet.ts";
+import type { AsistenciaCurso, AsistenciaData } from "../../types/intranet.ts";
 
 function parseNumber(raw: string): number {
-  const n = parseFloat(raw.trim().replace(",", ".").replace("%", ""));
+  const n = Number.parseFloat(raw.trim().replace(",", ".").replace("%", ""));
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -77,7 +77,13 @@ export function parseAsistencia(html: string): AsistenciaData {
 
   const iCodigo = colIndex(["código", "codigo", "cód"]);
   const iNombre = colIndex(["nombre", "curso", "asignatura"]);
-  const iTotalClases = colIndex(["total clases", "total de clases", "n° clases", "num clases", "total"]);
+  const iTotalClases = colIndex([
+    "total clases",
+    "total de clases",
+    "n° clases",
+    "num clases",
+    "total",
+  ]);
   const iAsistencias = colIndex(["asistencias", "asistencia", "n° asistencias"]);
   const iFaltas = colIndex(["faltas", "falta", "n° faltas", "inasistencias"]);
   const iTardanzas = colIndex(["tardanzas", "tardanza"]);

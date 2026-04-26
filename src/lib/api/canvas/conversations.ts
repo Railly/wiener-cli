@@ -8,7 +8,7 @@ export async function fetchConversations(opts?: {
   const queryParams: Record<string, string | number | boolean | undefined> = {
     per_page: opts?.perPage ?? 50,
   };
-  if (opts?.unreadOnly) queryParams["scope"] = "unread";
+  if (opts?.unreadOnly) queryParams.scope = "unread";
 
   const res = await canvasFetchAll<CanvasConversation>("/api/v1/conversations", { queryParams });
   return res.data;

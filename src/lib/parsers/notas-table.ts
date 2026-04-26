@@ -1,15 +1,15 @@
 import * as cheerio from "cheerio";
-import type { NotasData, NotaCurso } from "../../types/intranet.ts";
+import type { NotaCurso, NotasData } from "../../types/intranet.ts";
 
 function parseNumber(raw: string): number | null {
   const s = raw.trim().replace(",", ".");
-  const n = parseFloat(s);
+  const n = Number.parseFloat(s);
   return Number.isFinite(n) ? n : null;
 }
 
 function parseInteger(raw: string): number | null {
   const s = raw.trim();
-  const n = parseInt(s, 10);
+  const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -97,9 +97,7 @@ export function parseNotas(html: string): ParseNotasResult {
   let dataTable: ReturnType<typeof $> | null = null;
   $("table").each((_, table) => {
     const headers = $(table).find("tr").first().find("td, th");
-    const headerTexts = headers
-      .map((_, h) => normalizeWhitespace($(h).text()).toLowerCase())
-      .get();
+    const headerTexts = headers.map((_, h) => normalizeWhitespace($(h).text()).toLowerCase()).get();
     if (
       headerTexts.some((h) => h.includes("código") || h.includes("codigo") || h.includes("cód"))
     ) {
@@ -114,19 +112,18 @@ export function parseNotas(html: string): ParseNotasResult {
 
     rows.each((i, row) => {
       const cells = $(row).find("td, th");
-      const texts = cells
-        .map((_, c) => normalizeWhitespace($(c).text()).toLowerCase())
-        .get();
+      const texts = cells.map((_, c) => normalizeWhitespace($(c).text()).toLowerCase()).get();
       if (texts.some((t) => t.includes("código") || t.includes("codigo") || t.includes("cód"))) {
         headerRow = i;
       }
     });
 
     if (headerRow >= 0) {
-      const headerCells = $(rows.get(headerRow))
-        ?.find("td, th")
-        .map((_, c) => normalizeWhitespace($(c).text()).toLowerCase())
-        .get() ?? [];
+      const headerCells =
+        $(rows.get(headerRow))
+          ?.find("td, th")
+          .map((_, c) => normalizeWhitespace($(c).text()).toLowerCase())
+          .get() ?? [];
 
       const colIndex = (terms: string[]): number => {
         for (const term of terms) {

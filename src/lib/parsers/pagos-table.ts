@@ -1,5 +1,10 @@
 import * as cheerio from "cheerio";
-import type { PagosData, PagoItem, PagosHistorialData, PagoHistorialItem } from "../../types/intranet.ts";
+import type {
+  PagoHistorialItem,
+  PagoItem,
+  PagosData,
+  PagosHistorialData,
+} from "../../types/intranet.ts";
 
 function parseMonto(raw: string): number {
   // Handle "S/. 150.00", "150.00", "S/ 150,00"
@@ -8,7 +13,7 @@ function parseMonto(raw: string): number {
     .replace(/S\/\.?\s*/i, "")
     .replace(",", ".")
     .replace(/[^0-9.]/g, "");
-  const n = parseFloat(cleaned);
+  const n = Number.parseFloat(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -35,7 +40,10 @@ export function parsePagos(html: string): PagosData {
   // Look for total pendiente
   $("td").each((_, el) => {
     const text = normalizeWhitespace($(el).text()).toLowerCase();
-    if (text.includes("total") && (text.includes("pendiente") || text.includes("deuda") || text.includes("pagar"))) {
+    if (
+      text.includes("total") &&
+      (text.includes("pendiente") || text.includes("deuda") || text.includes("pagar"))
+    ) {
       const next = $(el).next("td");
       totalPendiente = totalPendiente || parseMonto(next.text());
     }
@@ -52,7 +60,9 @@ export function parsePagos(html: string): PagosData {
       .get();
 
     if (
-      headerTexts.some((h) => h.includes("concepto") || h.includes("obligación") || h.includes("obligacion")) &&
+      headerTexts.some(
+        (h) => h.includes("concepto") || h.includes("obligación") || h.includes("obligacion"),
+      ) &&
       headerTexts.some((h) => h.includes("monto") || h.includes("importe") || h.includes("deuda"))
     ) {
       dataTable = $(table);
@@ -70,7 +80,16 @@ export function parsePagos(html: string): PagosData {
     if (headerRow >= 0) return;
     const cells = $(row).find("td, th");
     const texts = cells.map((_, c) => normalizeWhitespace($(c).text()).toLowerCase()).get();
-    if (texts.some((t) => t === "concepto" || t === "monto" || t === "importe" || t === "vencimiento" || t === "estado")) {
+    if (
+      texts.some(
+        (t) =>
+          t === "concepto" ||
+          t === "monto" ||
+          t === "importe" ||
+          t === "vencimiento" ||
+          t === "estado",
+      )
+    ) {
       headerRow = i;
       headers.push(...texts);
     }
@@ -84,7 +103,13 @@ export function parsePagos(html: string): PagosData {
     return -1;
   };
 
-  const iConcepto = colIndex(["concepto", "descripción", "descripcion", "obligación", "obligacion"]);
+  const iConcepto = colIndex([
+    "concepto",
+    "descripción",
+    "descripcion",
+    "obligación",
+    "obligacion",
+  ]);
   const iMonto = colIndex(["monto", "importe", "deuda", "total"]);
   const iVencimiento = colIndex(["vencimiento", "fecha", "plazo"]);
   const iEstado = colIndex(["estado", "condición", "condicion"]);
@@ -151,7 +176,9 @@ export function parsePagosHistorial(html: string): PagosHistorialData {
     if (headerRow >= 0) return;
     const cells = $(row).find("td, th");
     const texts = cells.map((_, c) => normalizeWhitespace($(c).text()).toLowerCase()).get();
-    if (texts.some((t) => t === "concepto" || t === "fecha" || t === "monto" || t === "fecha pago")) {
+    if (
+      texts.some((t) => t === "concepto" || t === "fecha" || t === "monto" || t === "fecha pago")
+    ) {
       headerRow = i;
       headers.push(...texts);
     }

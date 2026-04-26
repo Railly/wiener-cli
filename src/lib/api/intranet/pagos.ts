@@ -1,7 +1,7 @@
-import { intranetFetch } from "./client.ts";
-import { parsePagos, parsePagosHistorial } from "../../parsers/pagos-table.ts";
 import type { IntranetSession, PagosData, PagosHistorialData } from "../../../types/intranet.ts";
 import { WienerError } from "../../errors.ts";
+import { parsePagos, parsePagosHistorial } from "../../parsers/pagos-table.ts";
+import { intranetFetch } from "./client.ts";
 
 const PAGOS_PATH = "/Alumno/pagos/obligaciones.asp";
 const PAGOS_HISTORIAL_PATH = "/Alumno/pagos/historial.asp";
@@ -20,9 +20,7 @@ export async function fetchPagos(session: IntranetSession): Promise<PagosData> {
   }
 }
 
-export async function fetchPagosHistorial(
-  session: IntranetSession,
-): Promise<PagosHistorialData> {
+export async function fetchPagosHistorial(session: IntranetSession): Promise<PagosHistorialData> {
   try {
     const response = await intranetFetch(PAGOS_HISTORIAL_PATH, session);
     return parsePagosHistorial(response.text);

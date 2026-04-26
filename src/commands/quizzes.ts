@@ -1,17 +1,17 @@
 // wiener quizzes <ref>
 
-import { fetchQuizzes } from "../lib/api/canvas/quizzes.js";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../lib/api/canvas/courses.js";
-import { resolveCourse } from "../lib/courses/resolver.js";
+import { fetchQuizzes } from "../lib/api/canvas/quizzes.js";
 import { groupBySection } from "../lib/courses/grouping.js";
-import { pMap } from "../lib/parallel.js";
-import { ok, err } from "../lib/output/envelope.js";
-import { emit } from "../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../lib/output/human.js";
+import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
+import { err, ok } from "../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable } from "../lib/output/human.js";
+import { emit } from "../lib/output/json.js";
+import { pMap } from "../lib/parallel.js";
 import type { CanvasCourse } from "../types/canvas.js";
 import type { Course, SectionType } from "../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -33,7 +33,7 @@ export async function runQuizzes(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -42,7 +42,10 @@ export async function runQuizzes(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -52,7 +55,9 @@ export async function runQuizzes(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allQuizzes = await pMap(
@@ -72,14 +77,23 @@ export async function runQuizzes(
           url: q.html_url,
         }));
       },
-      4
+      4,
     );
 
-    const quizzes = allQuizzes.flat().sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const quizzes = allQuizzes
+      .flat()
+      .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, quizzes };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (quizzes.length === 0) {
       console.log(pc.dim(`No hay quizzes en ${resolvedCourse.code}.`));
@@ -96,17 +110,25 @@ export async function runQuizzes(
       estado: q.status === "published" ? pc.green("publicado") : pc.dim(q.status),
     }));
 
-    console.log(renderSection(`Quizzes — ${resolvedCourse.code}`, renderTable(rows, [
-      { header: "Secc.", key: "secc" },
-      { header: "Título", key: "titulo", maxWidth: 40 },
-      { header: "Vencimiento", key: "vencimiento" },
-      { header: "Tiempo", key: "tiempo" },
-      { header: "Intentos", key: "intentos" },
-      { header: "Pts", key: "puntos" },
-      { header: "Estado", key: "estado" },
-    ])));
+    console.log(
+      renderSection(
+        `Quizzes — ${resolvedCourse.code}`,
+        renderTable(rows, [
+          { header: "Secc.", key: "secc" },
+          { header: "Título", key: "titulo", maxWidth: 40 },
+          { header: "Vencimiento", key: "vencimiento" },
+          { header: "Tiempo", key: "tiempo" },
+          { header: "Intentos", key: "intentos" },
+          { header: "Pts", key: "puntos" },
+          { header: "Estado", key: "estado" },
+        ]),
+      ),
+    );
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

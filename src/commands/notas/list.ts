@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchNotas } from "../../lib/api/intranet/notas.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
 
 export function makeNotasCommand(): Command {
   const cmd = new Command("notas")
@@ -25,7 +25,9 @@ export function makeNotasCommand(): Command {
 
         // Human output
         console.log(`\nNotas — Periodo: ${data.periodo}`);
-        console.log(`Alumno: ${data.alumno.codigo} | ${data.alumno.carrera} | Ciclo ${data.alumno.ciclo}`);
+        console.log(
+          `Alumno: ${data.alumno.codigo} | ${data.alumno.carrera} | Ciclo ${data.alumno.ciclo}`,
+        );
         if (data.ponderado_acumulado !== null) {
           console.log(`Ponderado acumulado: ${data.ponderado_acumulado}`);
         }
@@ -45,7 +47,7 @@ export function makeNotasCommand(): Command {
         }
 
         console.log("  Código       Nombre                                    Créd  Nota   Estado");
-        console.log("  " + "─".repeat(80));
+        console.log(`  ${"─".repeat(80)}`);
         for (const c of data.cursos) {
           const nota = c.nota_final !== null ? String(c.nota_final).padStart(4) : "  --";
           console.log(

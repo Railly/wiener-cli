@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { fetchHorario } from "../../lib/api/intranet/horario.ts";
-import { ok, err } from "../../lib/output/envelope.ts";
-import { emit, emitError } from "../../lib/output/json.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
 import { isWienerError } from "../../lib/errors.ts";
+import { err, ok } from "../../lib/output/envelope.ts";
+import { emit, emitError } from "../../lib/output/json.ts";
 
 const DAY_LABELS: Record<string, string> = {
   L: "Lunes",
@@ -41,7 +41,8 @@ export function makeHorarioCommand(): Command {
             const course = b.course_code ? `${b.course_code} · ${b.course_name}` : b.course_name;
             const location = [b.room, b.building].filter(Boolean).join(", ");
             console.log(`    ${time.padEnd(14)} ${course}`);
-            if (location) console.log(`    ${"".padEnd(14)} ${location}${b.teacher ? ` · ${b.teacher}` : ""}`);
+            if (location)
+              console.log(`    ${"".padEnd(14)} ${location}${b.teacher ? ` · ${b.teacher}` : ""}`);
           }
         }
       } catch (e) {

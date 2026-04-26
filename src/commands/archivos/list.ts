@@ -1,18 +1,18 @@
 // wiener archivos <ref> — flat file listing for a logical course
 
-import { fetchCourseFiles } from "../../lib/api/canvas/files.js";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { resolveCourse } from "../../lib/courses/resolver.js";
+import { fetchCourseFiles } from "../../lib/api/canvas/files.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
-import { pMap } from "../../lib/parallel.js";
-import { ok, err } from "../../lib/output/envelope.js";
+import { resolveCourse } from "../../lib/courses/resolver.js";
+import { toErrorEnvelope } from "../../lib/errors.js";
+import { err, ok } from "../../lib/output/envelope.js";
+import { formatBytes, formatDate, renderSection, renderTable } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
-import { renderTable, renderSection, formatDate, formatBytes } from "../../lib/output/human.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
+import { pMap } from "../../lib/parallel.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course, SectionType } from "../../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -35,7 +35,7 @@ export async function runArchivos(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -44,7 +44,10 @@ export async function runArchivos(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -54,7 +57,9 @@ export async function runArchivos(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allFiles = await pMap(
@@ -73,15 +78,29 @@ export async function runArchivos(
           seccion: s.seccion,
         }));
       },
-      4
+      4,
     );
 
     const archivos = allFiles.flat().sort((a, b) => b.modified_at.localeCompare(a.modified_at));
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, archivos };
 
-    if (opts.json) { emit(ok(data)); return; }
-    if (opts.ndjson) { await emitStream((async function* () { for (const f of archivos) yield f; })()); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
+    if (opts.ndjson) {
+      await emitStream(
+        (async function* () {
+          for (const f of archivos) yield f;
+        })(),
+      );
+      return;
+    }
 
     if (archivos.length === 0) {
       console.log(pc.dim(`No hay archivos en ${resolvedCourse.code}.`));
@@ -97,18 +116,26 @@ export async function runArchivos(
       tipo: f.content_type.split("/")[1] ?? f.content_type,
     }));
 
-    console.log(renderSection(`Archivos — ${resolvedCourse.code}`, renderTable(rows, [
-      { header: "ID", key: "id" },
-      { header: "Secc.", key: "secc" },
-      { header: "Nombre", key: "nombre", maxWidth: 50 },
-      { header: "Tamaño", key: "tamano" },
-      { header: "Modificado", key: "modificado" },
-      { header: "Tipo", key: "tipo", maxWidth: 20 },
-    ])));
+    console.log(
+      renderSection(
+        `Archivos — ${resolvedCourse.code}`,
+        renderTable(rows, [
+          { header: "ID", key: "id" },
+          { header: "Secc.", key: "secc" },
+          { header: "Nombre", key: "nombre", maxWidth: 50 },
+          { header: "Tamaño", key: "tamano" },
+          { header: "Modificado", key: "modificado" },
+          { header: "Tipo", key: "tipo", maxWidth: 20 },
+        ]),
+      ),
+    );
 
     console.log(pc.dim(`\n  Total: ${archivos.length} archivos`));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

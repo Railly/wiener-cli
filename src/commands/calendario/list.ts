@@ -1,13 +1,13 @@
 // wiener calendario [--dias N]
 
+import pc from "picocolors";
 import { fetchCalendarEvents, fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { ok } from "../../lib/output/envelope.js";
-import { emit } from "../../lib/output/json.js";
-import { renderTable, renderSection, formatDate } from "../../lib/output/human.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { ok } from "../../lib/output/envelope.js";
+import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { emit } from "../../lib/output/json.js";
 import { isoDateLima, weekFromNowLima } from "../../lib/time.js";
-import pc from "picocolors";
 
 export async function runCalendario(opts: {
   json?: boolean;
@@ -41,7 +41,7 @@ export async function runCalendario(opts: {
     }> = [];
 
     for (const ev of calEvents) {
-      const courseId = parseInt(ev.context_code.replace("course_", ""), 10);
+      const courseId = Number.parseInt(ev.context_code.replace("course_", ""), 10);
       const course = courseMap.get(courseId);
       eventos.push({
         fecha: ev.start_at ?? null,
@@ -69,7 +69,10 @@ export async function runCalendario(opts: {
     const sorted = eventos.sort((a, b) => (a.fecha ?? "").localeCompare(b.fecha ?? ""));
     const data = { eventos: sorted, dias };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (sorted.length === 0) {
       console.log(pc.green(`No hay eventos en los próximos ${dias} días.`));
@@ -83,14 +86,22 @@ export async function runCalendario(opts: {
       curso: e.curso,
     }));
 
-    console.log(renderSection(`Calendario — próximos ${dias} días`, renderTable(rows, [
-      { header: "Fecha", key: "fecha" },
-      { header: "Tipo", key: "tipo" },
-      { header: "Título", key: "titulo", maxWidth: 45 },
-      { header: "Curso", key: "curso" },
-    ])));
+    console.log(
+      renderSection(
+        `Calendario — próximos ${dias} días`,
+        renderTable(rows, [
+          { header: "Fecha", key: "fecha" },
+          { header: "Tipo", key: "tipo" },
+          { header: "Título", key: "titulo", maxWidth: 45 },
+          { header: "Curso", key: "curso" },
+        ]),
+      ),
+    );
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }

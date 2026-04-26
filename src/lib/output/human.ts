@@ -79,7 +79,7 @@ export function renderTable(rows: Record<string, unknown>[], columns: ColumnDef[
         const raw = row[c.key] ?? "";
         let val = String(raw);
         if (c.maxWidth && val.length > c.maxWidth) {
-          val = val.slice(0, c.maxWidth - 1) + "…";
+          val = `${val.slice(0, c.maxWidth - 1)}…`;
         }
         return c.color ? c.color(val) : val;
       }),
@@ -119,7 +119,7 @@ export function truncateHtml(html: string, maxLen = 200): string {
     .replace(/\s+/g, " ")
     .trim();
   if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen - 1) + "…";
+  return `${text.slice(0, maxLen - 1)}…`;
 }
 
 export function htmlToText(html: string): string {

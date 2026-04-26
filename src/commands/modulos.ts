@@ -1,17 +1,17 @@
 // wiener modulos <ref> — Canvas modules with items
 
-import { fetchModules } from "../lib/api/canvas/modules.js";
+import pc from "picocolors";
 import { fetchActiveCourses } from "../lib/api/canvas/courses.js";
-import { resolveCourse } from "../lib/courses/resolver.js";
+import { fetchModules } from "../lib/api/canvas/modules.js";
 import { groupBySection } from "../lib/courses/grouping.js";
-import { pMap } from "../lib/parallel.js";
-import { ok, err } from "../lib/output/envelope.js";
-import { emit } from "../lib/output/json.js";
-import { renderSection } from "../lib/output/human.js";
+import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
+import { err, ok } from "../lib/output/envelope.js";
+import { renderSection } from "../lib/output/human.js";
+import { emit } from "../lib/output/json.js";
+import { pMap } from "../lib/parallel.js";
 import type { CanvasCourse } from "../types/canvas.js";
 import type { Course, SectionType } from "../types/course.js";
-import pc from "picocolors";
 
 function toList(canvasCourses: CanvasCourse[]): Course[] {
   return canvasCourses.map((c) => ({
@@ -33,7 +33,7 @@ export async function runModulos(
     seccion?: SectionType;
     exact?: boolean;
     noInput?: boolean;
-  }
+  },
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
@@ -42,7 +42,10 @@ export async function runModulos(
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
-      if (opts.json) { emit(errEnv); return; }
+      if (opts.json) {
+        emit(errEnv);
+        return;
+      }
       process.stderr.write(`No course matching "${ref}"\n`);
       process.exit(1);
       return;
@@ -52,7 +55,9 @@ export async function runModulos(
     const logical = groupBySection(courses);
     const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
 
-    const secciones = logicalCourse?.secciones ?? [{ id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType }];
+    const secciones = logicalCourse?.secciones ?? [
+      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
+    ];
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allModules = await pMap(
@@ -74,14 +79,21 @@ export async function runModulos(
           })),
         }));
       },
-      4
+      4,
     );
 
     const modulos = allModules.flat().sort((a, b) => a.position - b.position);
-    const cursoInfo = { code: resolvedCourse.code, alias: resolvedCourse.alias, name: resolvedCourse.name };
+    const cursoInfo = {
+      code: resolvedCourse.code,
+      alias: resolvedCourse.alias,
+      name: resolvedCourse.name,
+    };
     const data = { curso: cursoInfo, modulos };
 
-    if (opts.json) { emit(ok(data)); return; }
+    if (opts.json) {
+      emit(ok(data));
+      return;
+    }
 
     if (modulos.length === 0) {
       console.log(pc.dim(`No hay módulos en ${resolvedCourse.code}.`));
@@ -94,7 +106,9 @@ export async function runModulos(
       for (const item of mod.items) {
         const typeTag = pc.dim(`[${item.type}]`);
         const completion = item.completion_requirement
-          ? (item.completion_requirement.completed ? pc.green(" ✓") : pc.dim(" ○"))
+          ? item.completion_requirement.completed
+            ? pc.green(" ✓")
+            : pc.dim(" ○")
           : "";
         const url = item.url ? pc.dim(` → ${item.url.slice(0, 60)}`) : "";
         output += `  ${typeTag} ${item.title}${completion}${url}\n`;
@@ -103,7 +117,10 @@ export async function runModulos(
 
     console.log(renderSection(`Módulos — ${resolvedCourse.code}`, output));
   } catch (e) {
-    if (opts.json) { emit(toErrorEnvelope(e)); return; }
+    if (opts.json) {
+      emit(toErrorEnvelope(e));
+      return;
+    }
     process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   }
