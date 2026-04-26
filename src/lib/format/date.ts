@@ -63,6 +63,7 @@ export function formatDueDate(iso: string | null | undefined, now = new Date()):
   if (diffH < 6) {
     const h = Math.floor(diffH);
     const m = Math.round((diffH - h) * 60);
+    if (m === 60) return pc.yellow(`en ${h + 1}h`);
     return pc.yellow(m > 0 ? `en ${h}h ${m}min` : `en ${h}h`);
   }
 
