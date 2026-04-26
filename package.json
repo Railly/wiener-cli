@@ -1,6 +1,6 @@
 {
   "name": "@railly/wiener-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Agent-first CLI for Universidad Norbert Wiener student portals (intranet ASP + Canvas LMS). Surfaces what the Wiener UI hides.",
   "keywords": [
     "wiener",

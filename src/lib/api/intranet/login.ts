@@ -61,11 +61,17 @@ export async function loginIntranet(input: LoginInput): Promise<IntranetSession>
   }
 
   // Step 3: POST to ValidaAcceso.asp
-  // estado "1" → action contains the path, prepend base_url
+  // estado "1" → action contains the path, append /ValidaAcceso.asp per recon.md
   // estado "9" → post directly to data.action
-  const validaPath = authData.action.startsWith("http")
-    ? authData.action
-    : `${BASE_URL}${authData.action}`;
+  // Normalize action: ensure leading slash, strip trailing slash
+  const rawAction = authData.action.startsWith("http")
+    ? authData.action.replace(BASE_URL, "")
+    : authData.action;
+  const normalizedAction = `/${rawAction.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+  const validaPath =
+    authData.estado === "1"
+      ? `${normalizedAction}/ValidaAcceso.asp`
+      : normalizedAction;
 
   const validaBody = new URLSearchParams({
     lgnUserName: input.usuario,
@@ -74,7 +80,7 @@ export async function loginIntranet(input: LoginInput): Promise<IntranetSession>
     lgnddlInstituciones: "51",
   });
 
-  const validaResp = await client.fetch(validaPath.replace(BASE_URL, ""), {
+  const validaResp = await client.fetch(validaPath, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
