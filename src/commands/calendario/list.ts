@@ -3,6 +3,7 @@
 import pc from "picocolors";
 import { fetchCalendarEvents, fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
+import { emitNextSteps } from "../../lib/agent/next-steps.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
 import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
@@ -97,6 +98,11 @@ export async function runCalendario(opts: {
         ]),
       ),
     );
+
+    emitNextSteps([
+      { command: "wiener tareas hoy", description: "qué hay que entregar hoy" },
+      { command: `wiener calendario --ics`, description: "exportar como .ics", optional: true },
+    ]);
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));
