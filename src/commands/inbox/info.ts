@@ -2,12 +2,16 @@
 
 import pc from "picocolors";
 import { fetchConversation } from "../../lib/api/canvas/conversations.js";
+import { emitNextSteps } from "../../lib/agent/next-steps.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { formatDate } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
+import { relativeDate } from "../../lib/time.js";
 
-export async function runInboxInfo(id: string, opts: { json?: boolean }): Promise<void> {
+export async function runInboxInfo(
+  id: string,
+  opts: { json?: boolean; profile?: string },
+): Promise<void> {
   try {
     const convId = Number.parseInt(id, 10);
     if (Number.isNaN(convId)) {
@@ -21,7 +25,7 @@ export async function runInboxInfo(id: string, opts: { json?: boolean }): Promis
       return;
     }
 
-    const conv = await fetchConversation(convId);
+    const conv = await fetchConversation(convId, opts.profile);
 
     const mensajes = (conv.messages ?? []).map((m) => ({
       id: m.id,
@@ -52,17 +56,30 @@ export async function runInboxInfo(id: string, opts: { json?: boolean }): Promis
       return;
     }
 
-    console.log(pc.bold(`\nConversación #${conv.id} — ${conv.subject ?? "(sin asunto)"}`));
-    console.log(pc.dim(`Participantes: ${participantes.map((p) => p.name).join(", ")}`));
-    console.log(pc.dim(`Mensajes: ${conv.message_count}\n`));
+    const subject = conv.subject ?? "(sin asunto)";
+    const count = conv.message_count;
+    const withLine = `con ${participantes.map((p) => p.name).join(", ")} · ${count} mensaje${count === 1 ? "" : "s"}`;
+
+    console.log();
+    console.log(pc.dim(`─ ${pc.bold(subject)}`));
+    console.log(`  ${pc.dim(withLine)}`);
+    console.log();
 
     for (const msg of data.mensajes) {
-      const author = pc.bold(pc.cyan(msg.author));
-      const date = pc.dim(formatDate(msg.created_at));
-      console.log(`${author}  ${date}`);
-      console.log(msg.body);
+      const when = relativeDate(msg.created_at);
+      const authorLabel = pc.bold(pc.cyan(msg.author));
+      console.log(`  ${pc.dim("─")} ${authorLabel}    ${pc.dim(when)}`);
+      const bodyLines = msg.body.replace(/\r\n/g, "\n").split("\n");
+      for (const line of bodyLines) {
+        console.log(`    ${pc.dim('"')}${line}`);
+      }
       console.log();
     }
+
+    emitNextSteps([
+      { command: "wiener inbox", description: "volver a la bandeja" },
+      { command: `wiener inbox --no-leidos`, description: "solo no leídos" },
+    ]);
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));

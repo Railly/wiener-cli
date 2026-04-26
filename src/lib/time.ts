@@ -53,3 +53,25 @@ export function isWithinDays(isoDate: string | null | undefined, days: number): 
   const d = new Date(isoDate);
   return d >= start && d < end;
 }
+
+export function relativeDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return "—";
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return "—";
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  const diffWk = Math.floor(diffDay / 7);
+  const diffMo = Math.floor(diffDay / 30);
+
+  if (diffSec < 60) return "ahora";
+  if (diffMin < 60) return `hace ${diffMin}min`;
+  if (diffHr < 24) return `hace ${diffHr}h`;
+  if (diffDay === 1) return "ayer";
+  if (diffDay < 7) return `hace ${diffDay}d`;
+  if (diffWk < 5) return `hace ${diffWk}sem`;
+  if (diffMo < 12) return `hace ${diffMo}mes`;
+  return `hace ${Math.floor(diffMo / 12)}año`;
+}
