@@ -2,291 +2,519 @@
 type: shaping
 cli: wiener-cli
 created: 2026-04-26
-status: shaped
-appetite: 4-6 days for v1 (intranet only), +2 days for Canvas v1.1
+status: shaped (v2 — student-first redesign post-Canvas-recon)
+appetite: 5-7 days for v1 (intranet + Canvas read-only via PAT), +2 days for advanced (planner, watch, nuevo)
 risk: LOW
-source: "[[recon]]"
+source: "[[recon]] [[recon-canvas]]"
 ---
 
-# wiener-cli — Shape
+# wiener-cli — Shape (v2, student-first)
 
 ## Problem
 
 Universidad Norbert Wiener spreads student information across two portals
 (`intranet.uwiener.edu.pe` ASP + `campus.uwiener.edu.pe` Canvas) plus several
-satellite domains. The actual day-to-day student questions — *"qué nota saqué",
-"qué clase tengo ahora", "cuándo es el examen", "qué tareas debo entregar"* —
-require multiple manual logins, navigating frame-based ASP menus, and clicking
-through Canvas tabs. Both portals render data in HTML tables that are easy for
-a CLI to parse and pipe.
+satellite domains. The day-to-day student questions — *"qué tengo hoy", "qué
+debo entregar", "cómo voy en X", "qué subió el profe", "tengo deuda?"* —
+require multiple manual logins, jerárquica navigation, and the Canvas UI is
+**lockdown-customized by Wiener admin**: 7 tabs (Tareas, Discusiones, Páginas,
+Archivos, Quizzes, Conferencias, Programa del curso) are hidden from the
+student sidebar. Students reach assignments by drilling into Modules week by
+week. There is no "all PDFs of this course" view. There is no "all assignments
+across courses due this week" view.
 
-The user is a Wiener Alumno (not Hunter himself; Hunter is automating for a
-family member). Pain is concrete and recurring: every weekday someone asks
-"what's my schedule today" or "did the prof post my grade yet" and the answer
-takes 2-5 minutes of clicking. With a CLI: `wiener horario hoy` in 1 second.
+The Canvas REST API at `/api/v1/*` exposes ALL of this — Wiener locked down the
+UI but not the API. Personal Access Token generation is enabled for students.
+This CLI surfaces what the UI hides, in the form a student actually thinks in.
+
+The user is a Wiener Alumno (Hunter automating for a family member, account
+`aXXXXXXXXX`). Pain is concrete and recurring: every weekday someone asks
+"what's my schedule today" or "did the prof post my grade yet" or "what files
+did the prof upload this week" and the answer takes 2-10 minutes of clicking.
+With this CLI: `wiener` (no args) → full panorama in 1 second.
 
 ## Appetite
 
-**6 days for v1** (intranet read-only): auth + notas + horario + asistencia +
-plan-de-estudios + JSON-everywhere + audit log. This is the 80% value.
-
-**+2 days for v1.1** (Canvas read-only): courses + assignments + due-soon. Only
-unblocks once Canvas access token is obtained manually.
+**5-7 days for v1** (intranet + Canvas read-only, all hidden surfaces unlocked):
+- Day 1: scaffold + `auth login` (intranet) + `auth canvas set-token` + course
+  resolver lib + `cursos`/`cursos aliases` + `doctor`.
+- Day 2: intranet reads — `notas`, `horario`, `asistencia`, `plan`, `historial`,
+  `examenes`, `matricula`, `perfil`, `pagos`, `tramite`.
+- Day 3: Canvas reads — `tareas`, `tareas hoy/semana/info`, `calificaciones`,
+  `anuncios`, `modulos`, `archivos`, `archivos download`.
+- Day 4: Canvas extras — `inbox`, `calendario`, `calendario --ics`, `quizzes`,
+  `discusiones`, `paginas`, `syllabus`, `conferencias`.
+- Day 5: top-level `wiener` panorama, `wiener hoy`, `wiener planner`, schema,
+  output polish (color tables, json, ndjson, fields, params).
+- Day 6: `wiener nuevo` (diff state) + `wiener watch` (background + macOS notif).
+- Day 7: smoke pass with the actual student, bug bash, ship v0.7.0.
 
 **Kill criteria** (stop and reassess):
-- `csrfToken` rotates per session — would force scraping every login. Doable
-  but adds 1 day; reassess if scope creeps.
-- Wiener migrates intranet to a JS SPA — current scraping approach dies, would
-  need full rebuild against new endpoints. Probability low (legacy ASP, no
-  signs of migration), but check before each release.
-- MS Entra requires MFA for token generation — Canvas v1.1 path may need
-  device-code OAuth flow instead, which is heavier; if so, defer Canvas to
-  v2 and ship intranet-only.
+- PAT generation gets disabled by Wiener admin → fall back to manual cookie
+  extraction docs. Doable but painful, 1 day extra.
+- `csrfToken=9144AF7` rotates per-session → re-scrape every login. +half day.
+- Wiener migrates intranet to JS SPA → full rebuild against new endpoints.
+  Probability low (legacy ASP unchanged for years).
+- Canvas API rate-limit (`rlr=`) drops below 100 in normal usage → add
+  aggressive caching, +1 day.
+
+## North Star Interaction
+
+What `wiener` solo does (no args, the most common invocation):
+
+```
+$ wiener
+
+Hoy — Lunes 27 abril 2026
+─────────────────────────
+
+  Ahora        ─ AC6M28 · CIENCIA Y DESCUBRIMIENTO
+                 07:00 - 10:00 · Remoto-Videoconf · Prof. Pérez, {REDACTED_NAME}
+
+  Próximo      ─ FB6M4 · LABORATORIO Y DIAGNÓSTICO II  (en 1h 23m)
+                 11:30 - 14:00 · Aula 305 · Prof. García, Luis
+
+Pendiente hoy
+─────────────
+
+  ⚡ ENTREGA   FB6N1  Informe semanal UD2          venc. 23:00 (en 4h)
+  ○ tarea     AC6M28 Foro: ética científica       venc. 23:59 (en 5h)
+  ○ quiz      FB6N2  Autoevaluación módulo 3      venc. mañana 08:00
+
+Esta semana
+───────────
+
+  3 tareas más con vencimiento (ver: wiener tareas semana)
+  2 quizzes  (ver: wiener quizzes)
+
+Cambios desde tu última corrida (hace 6h)
+─────────────────────────────────────────
+
+  ✦ Nueva calificación  AC6M28 Práctica calificada 1: 17/20
+  ✦ Nuevo anuncio       FB6M4 "Cambio de aula sesión jueves"
+  ✦ Nuevo archivo       FB6N1 Tema-04-farmacocinetica.pdf  (12 MB)
+
+  → wiener nuevo --abrir   para ver detalles
+```
+
+Density and student-mental-model first. Color: ENTREGA en rojo, próximo en
+amarillo, cambios en cyan. `--json` flag flattens this to a single structured
+object.
+
+## Course Resolver (the alias system)
+
+Mental model: students don't type course IDs (131067) and they get tired of
+codes (FB6N1). They want to type what they remember.
+
+### Resolution order — first hit wins
+
+1. **Exact match** on `course_code` (`FB6N1`) or custom alias.
+2. **Substring match** (≥3 chars, case-insensitive) on `course_code`, `name`,
+   or alias. Single match → execute. Multiple matches → list and ask.
+3. **Fuzzy score** (substring + char-order + position bonuses) over code+name+alias.
+   - Top-1 score > 0.85 AND delta-to-top-2 > 0.3 → confirm via clack:
+     `¿Quisiste decir farma (FB6N1 — TERAPÉUTICA FARMACOLÓGICA III)? [Enter / Esc]`
+   - Multiple high-score candidates → table + ask to pick.
+4. **No reasonable match** (top-1 score < 0.5) → error with **top 5 fuzzy
+   candidates regardless of score** + tip pointing to `wiener cursos`.
+
+### Behavior in non-interactive mode (`--json` or `--no-input`)
+
+- No clack prompts ever.
+- Top-1 score > 0.92 → execute directly.
+- Otherwise → exit 1 with `{ ok: false, error: { code: "course-ambiguous", message, candidates: [{code, name, alias, score}, ...] } }` to stderr.
+
+### Override flag
+
+- `--exact` forces exact match only (no fuzzy, no substring). For paranoid
+  scripts that want stable behavior across roster changes.
+
+### Aliases
+
+**Default**: every course gets an auto-alias = first significant word of the
+name, lowercased, accents stripped, deduplicated by appending a counter if
+needed. E.g.:
+
+| code | name | auto-alias |
+|---|---|---|
+| FB6N1 | TERAPÉUTICA FARMACOLÓGICA III | terapeutica |
+| FB6N2 (FARMACIA CLÍNICA I) | FARMACIA CLÍNICA I | farmacia |
+| FB6N2 (PREPARACIONES FARMACÉUTICAS) | PREPARACIONES FARMACÉUTICAS | preparaciones |
+| FB6M4 | LABORATORIO Y DIAGNÓSTICO II | laboratorio |
+| AC6M28 | CIENCIA Y DESCUBRIMIENTO | ciencia |
+
+**Wizard** to customize: `wiener cursos aliases` walks course-by-course with
+clack/prompts:
+
+```
+$ wiener cursos aliases
+
+Configurando aliases (Enter para mantener actual, Ctrl+C salir).
+
+[1/8] AC6M28 — CIENCIA Y DESCUBRIMIENTO
+      Alias actual: ciencia
+      ◇ Nuevo alias: ▏ciencia▏
+
+[2/8] FB6M4 — LABORATORIO Y DIAGNÓSTICO II (T+PD)
+      Alias actual: laboratorio
+      ◇ Nuevo alias: ▏labo▏
+
+...
+
+✓ 4 aliases personalizados, 4 mantenidos en default
+  Guardado en ~/.wiener/aliases.json
+```
+
+Persisted to `~/.wiener/aliases.json` (per profile). Reset one with
+`wiener cursos aliases reset <code>`. List all with `wiener cursos aliases list`.
+
+### Section grouping (T/P/PD)
+
+Each Wiener course splits into theory + practice as separate Canvas courses
+with the same `course_code` (e.g. FB6M4 has `-T` and `-PD`, FB6N1 has `-T` and
+`-P1`). 11 Canvas courses → 8 logical courses for the student.
+
+**Default**: `wiener tareas labo` returns merged tareas across all sections,
+with a `seccion` column to distinguish. Same for `archivos`, `anuncios`,
+`modulos`, `calificaciones`.
+
+**Filter by section**: `wiener tareas labo --seccion T` or `--seccion PD`.
+Only one `--seccion` flag at a time.
+
+`wiener cursos` shows grouped by default (8 rows), `--all` expands to 11.
 
 ## Command Surface
 
-Convention: `wiener <noun> <verb>`. Most commands are read-only (T0). Anything
-that writes through to Wiener (rare) or generates a payable order is T2.
+Top-level plano = primary surface. Mirror namespaces (`wiener intranet *`,
+`wiener canvas *`) provided for `--help` filtering and disambiguation.
+
+### Top-level (default + alias-friendly)
+
+| Command | Trust | Description | JSON Output |
+|---------|-------|-------------|-------------|
+| `wiener` | T0 | "Hoy" panorama: schedule + pending today + week summary + recent diffs. | `{ hoy, ahora, proximo, pendiente_hoy, esta_semana, nuevo: { ... } }` |
+| `wiener hoy` | T0 | Solo bloque de hoy + tareas hoy. Sin diffs. | `{ fecha, dia, bloques: [...], tareas_hoy: [...] }` |
+| `wiener ahora` | T0 | Bloque actual + próximo. | `{ ahora: bloque\|null, proximo: bloque\|null, eta_minutos? }` |
+| `wiener semana` | T0 | Schedule semana + tareas semana + quizzes semana. | `{ semana, dias: { L: [...], ... }, tareas: [...], quizzes: [...] }` |
+| `wiener nuevo` | T0 | Diff desde última corrida (anuncios, archivos, calificaciones, tareas, módulos). | `{ desde, items: [{ tipo, curso, titulo, detalle, url }] }` |
+| `wiener nuevo --abrir` | T0 | Mismo + abre cada item en browser. | (same) |
+| `wiener watch` | T0 | Background loop: cada 30 min ejecuta diff y manda macOS notif si hay cambios. Ctrl+C para parar. | streaming NDJSON of diff events |
+| `wiener doctor` | T0 | Health check ambos backends + auth + csrfToken stable + sample API call. | `{ ok, checks: [{ name, ok, detail }] }` |
+| `wiener schema [comando]` | T0 | Schema JSON de un comando (introspection). | `{ command, args, output_schema }` |
+| `wiener config show` | T0 | Config + paths actuales. | `{ ... }` |
 
 ### Auth
 
 | Command | Trust | Description | JSON Output |
 |---------|-------|-------------|-------------|
-| `wiener auth login` | T2 | Interactive intranet login (prompts for usuario/contraseña/perfil). Stores session. | `{ ok, perfil, expiresAt? }` |
-| `wiener auth status` | T0 | Show current session state for both backends. | `{ intranet: { authed, user, sessionAgeMinutes }, canvas: { authed, tokenSet, lastCallAt? } }` |
-| `wiener auth logout` | T0 | Destroy local session, call CerrarSesion.asp. | `{ ok }` |
-| `wiener auth canvas set-token` | T2 | Set Canvas personal access token. Validates against `/api/v1/users/self`. | `{ ok, user: { id, name, primary_email } }` |
-| `wiener auth canvas clear` | T0 | Remove stored Canvas token. | `{ ok }` |
+| `wiener auth login` | T2 | Interactive intranet login (clack: usuario/contraseña/perfil). | `{ ok, perfil, codigo, expiresAt? }` |
+| `wiener auth status` | T0 | Estado de ambos backends. | `{ intranet: {...}, canvas: {...} }` |
+| `wiener auth logout` | T0 | CerrarSesion.asp + wipe local. Canvas opcional `--canvas` para revoke PAT. | `{ ok }` |
+| `wiener auth canvas set-token <pat>` | T2 | Valida con `/api/v1/users/self`, guarda. | `{ ok, user: { id, name } }` |
+| `wiener auth canvas pat new` | T2 | Abre `/profile/settings` + instrucciones paste-back. | `{ url_opened, hint }` |
+| `wiener auth canvas clear` | T0 | Borra PAT local. | `{ ok }` |
 
-### Académico — read
+### Cursos
 
 | Command | Trust | Description | JSON Output |
 |---------|-------|-------------|-------------|
-| `wiener notas [--periodo 2026-I]` | T0 | Notas del periodo. Defaults to current. | `{ periodo, alumno: {...}, ponderado_acumulado, ponderado_historico, cursos: [{ codigo, nombre, ciclo, nota, modalidad }] }` |
-| `wiener notas periodos` | T0 | List available periods (scraped from select options). | `{ periodos: ["2026-I", "2025-II", ...] }` |
-| `wiener historial` | T0 | Historial académico completo. | `{ ciclos: [{ periodo, cursos: [...] }] }` |
-| `wiener horario [--semana actual\|YYYY-WW]` | T0 | Horario matriculado, semana entera. | `{ semana, dias: { L: [bloques], M: [...], ... } }` where bloque = `{ time_start, time_end, course_code, course_name, section, type, room, building, attribute, teacher }` |
-| `wiener horario hoy` | T0 | Solo bloques de hoy. | `{ fecha, dia, bloques: [...] }` |
-| `wiener horario ahora` | T0 | Bloque(s) en este momento + próximo. | `{ ahora: bloque\|null, proximo: bloque\|null }` |
-| `wiener asistencia [--curso COD]` | T0 | Asistencia por curso. | `{ cursos: [{ codigo, nombre, total_clases, asistencias, faltas, tardanzas, porcentaje }] }` |
-| `wiener plan` | T0 | Plan de estudios completo. | `{ carrera, ciclos: [{ ciclo, cursos: [...] }] }` |
-| `wiener plan avance` | T0 | Avance académico contra plan. | `{ creditos_aprobados, creditos_total, cursos_aprobados, cursos_pendientes, porcentaje }` |
+| `wiener cursos [--all]` | T0 | Lista cursos (agrupado por code default; `--all` 1 row per Canvas course). | `{ cursos: [{ code, name, alias, secciones: [{ id, seccion, name }], term, role }] }` |
+| `wiener cursos info <ref>` | T0 | Detalle de un curso. | `{ code, name, alias, secciones: [...], teachers, sidebar_tabs_visible, sidebar_tabs_hidden, lti_tools }` |
+| `wiener cursos abrir <ref>` | T0 | Abre `/courses/{id}` en browser default (para LTI: Microsoft Education, IgniteAI). | `{ ok, url_opened }` |
+| `wiener cursos aliases` | T2 | Wizard interactivo. | `{ ok, aliases: { code: alias, ... } }` |
+| `wiener cursos aliases list` | T0 | Tabla actual. | `{ aliases: [...] }` |
+| `wiener cursos aliases reset <code>` | T0 | Vuelve a auto. | `{ ok }` |
+| `wiener cursos favoritos` | T0 | Solo cursos favoriteados en Canvas. | `{ cursos: [...] }` |
+
+### Tareas (UI hidden — API-backed)
+
+| Command | Trust | Description | JSON Output |
+|---------|-------|-------------|-------------|
+| `wiener tareas` | T0 | Todas las tareas pendientes en todos los cursos activos. | `{ tareas: [{ id, curso: { code, alias, seccion }, name, due_at, points, submitted, graded, grade, url }] }` |
+| `wiener tareas <ref>` | T0 | Tareas de un curso (todas las secciones por default). | `{ curso, tareas: [...] }` |
+| `wiener tareas hoy` | T0 | Vencen hoy o están atrasadas. | `{ atrasadas: [...], hoy: [...] }` |
+| `wiener tareas semana` | T0 | Vencen en próximos 7 días. | `{ tareas: [...] }` |
+| `wiener tareas info <id>` | T0 | Detalle + descripción + rubric + tu submission. | `{ id, name, description, due_at, rubric, submission, points }` |
+| `wiener planner` | T0 | `/api/v1/planner/items` — el data behind dashboard list view, con flags missing/late/ignored. Más rico que `tareas`. | `{ items: [{ plannable_type, plannable, planner_override, submissions, ... }] }` |
+
+### Calificaciones (parcial UI, completo API)
+
+| Command | Trust | Description | JSON Output |
+|---------|-------|-------------|-------------|
+| `wiener calificaciones` | T0 | Vista cross-curso: nota actual (current_grade) por cada curso. | `{ cursos: [{ code, alias, current_grade, current_score, final_grade?, final_score? }] }` |
+| `wiener calificaciones <ref>` | T0 | Detalle por curso: cada submission con nota. | `{ curso, submissions: [{ assignment, score, grade, posted_at, comments }] }` |
+| `wiener notas` | T0 | (intranet) Notas oficiales por periodo. Distinto a Canvas: estas son las que cuentan. | `{ periodo, alumno, ponderado_acumulado, ponderado_historico, orden_merito, cursos: [...] }` |
+| `wiener notas periodos` | T0 | Periodos disponibles. | `{ periodos: [...] }` |
+| `wiener notas --periodo 2025-II` | T0 | Notas de periodo histórico. | (same) |
+| `wiener historial` | T0 | (intranet) Historial académico completo. | `{ ciclos: [...] }` |
+
+### Horario, asistencia, plan (intranet)
+
+| Command | Trust | Description | JSON Output |
+|---------|-------|-------------|-------------|
+| `wiener horario` | T0 | Semana matriculada. | `{ semana, dias: { L: [bloques], ... } }` where bloque = `{ time_start, time_end, course_code, course_name, section, type, room, building, teacher }` |
+| `wiener horario hoy` | T0 | Bloques hoy. | `{ fecha, bloques: [...] }` |
+| `wiener horario ahora` | T0 | Bloque actual + próximo. | `{ ahora, proximo, eta_minutos }` |
+| `wiener asistencia [--curso <ref>]` | T0 | Asistencia por curso. | `{ cursos: [{ code, total_clases, asistencias, faltas, tardanzas, porcentaje }] }` |
+| `wiener plan` | T0 | Plan de estudios completo. | `{ carrera, ciclos: [...] }` |
+| `wiener plan avance` | T0 | Avance vs plan. | `{ creditos_aprobados, creditos_total, cursos_aprobados, cursos_pendientes, porcentaje }` |
 | `wiener examenes` | T0 | Rol de exámenes próximos. | `{ examenes: [{ fecha, hora, curso, modalidad, aula }] }` |
-| `wiener matricula` | T0 | Ficha de matrícula del periodo actual. | `{ periodo, ciclo, cursos: [...] }` |
-| `wiener perfil` | T0 | Datos personales del estudiante. | `{ codigo, nombres, apellidos, dni, carrera, ... }` (REDACT-aware) |
+| `wiener matricula` | T0 | Ficha de matrícula actual. | `{ periodo, ciclo, cursos: [...] }` |
+| `wiener perfil` | T0 | Datos del estudiante. | `{ codigo, nombres, carrera, ... }` |
 
-### Pagos / trámites
-
-| Command | Trust | Description | JSON Output |
-|---------|-------|-------------|-------------|
-| `wiener pagos pendientes` | T0 | Obligaciones / deudas. | `{ total_pendiente, items: [{ concepto, monto, vencimiento, estado }] }` |
-| `wiener pagos historial` | T0 | Pagos realizados (si la página los expone). | `{ pagos: [{ fecha, concepto, monto, recibo }] }` |
-| `wiener tramite generar --tipo TIPO` | T2 | Genera orden de pago para un trámite. Muestra preview + monto, pide `--yes`. | `{ orden_id, monto, concepto, vencimiento }` |
-| `wiener tramite list` | T0 | Trámites en curso del alumno. | `{ tramites: [{ id, tipo, estado, fecha_inicio }] }` |
-
-### Canvas (v1.1, requires token)
+### Anuncios, archivos, módulos (UI hidden — Canvas API)
 
 | Command | Trust | Description | JSON Output |
 |---------|-------|-------------|-------------|
-| `wiener cursos` | T0 | Cursos activos en Canvas. | `{ cursos: [{ id, code, name, term, role }] }` |
-| `wiener cursos info <id>` | T0 | Detalle de un curso. | `{ id, name, syllabus, teachers: [...], tabs: [...] }` |
-| `wiener tareas [--curso ID] [--estado pending\|submitted\|graded]` | T0 | Tareas todas o por curso. | `{ tareas: [{ id, curso, name, due_at, points, submitted, graded, grade }] }` |
-| `wiener tareas hoy` | T0 | Tareas con due_at hoy o atrasadas. | `{ atrasadas: [...], hoy: [...] }` |
-| `wiener tareas semana` | T0 | Tareas de la semana en curso. | `{ tareas: [...] }` |
-| `wiener tareas info <id>` | T0 | Detalle + descripción + rubric. | `{ id, name, description, due_at, rubric, submission }` |
-| `wiener anuncios [--curso ID] [--ultimos N]` | T0 | Announcements. | `{ anuncios: [{ id, curso, title, posted_at, author, body }] }` |
-| `wiener archivos [--curso ID]` | T0 | Listar archivos del curso. | `{ archivos: [{ id, name, size, modified_at, download_url }] }` |
-| `wiener archivos download <id> [--out PATH]` | T0 | Descargar un archivo. | `{ ok, path, size }` |
-| `wiener calendario [--dias N]` | T0 | Próximos eventos Canvas (N días, default 7). | `{ eventos: [{ fecha, tipo, titulo, curso }] }` |
-| `wiener inbox [--no-leidos]` | T0 | Conversaciones Canvas. | `{ conversaciones: [{ id, from, subject, last_message_at, unread }] }` |
+| `wiener anuncios [--ultimos N]` | T0 | Anuncios cross-curso (últimos N por curso). | `{ anuncios: [{ id, curso, title, posted_at, author, body }] }` |
+| `wiener anuncios <ref>` | T0 | Anuncios de un curso. | `{ curso, anuncios: [...] }` |
+| `wiener anuncios globales` | T0 | EEGG + institucionales del dashboard. | `{ anuncios: [...] }` |
+| `wiener archivos <ref>` | T0 | Listado plano de TODOS los archivos del curso (UI esconde esto). | `{ curso, archivos: [{ id, name, path, size, modified_at, download_url }] }` |
+| `wiener archivos arbol <ref>` | T0 | Árbol de carpetas/archivos. | `{ curso, root: { folders, files } }` |
+| `wiener archivos download <id> [--out PATH]` | T2 si >50MB | Descarga 1 archivo. | `{ ok, path, size }` |
+| `wiener archivos sync <ref> [--dir PATH]` | T2 | Descarga masiva del curso. Confirma cantidad + tamaño antes. | `{ ok, total, downloaded, skipped }` |
+| `wiener modulos <ref>` | T0 | Módulos del curso con items. | `{ curso, modulos: [{ id, name, items: [{ type, title, url }] }] }` |
+| `wiener syllabus <ref>` | T0 | Syllabus_body del curso. | `{ curso, syllabus_html, syllabus_text }` |
+| `wiener paginas <ref>` | T0 | Wiki pages del curso. | `{ paginas: [{ url, title, body, updated_at }] }` |
+| `wiener discusiones <ref>` | T0 | Foros + tu participación. | `{ discusiones: [...] }` |
+| `wiener quizzes <ref>` | T0 | Quizzes del curso (UI esconde). | `{ quizzes: [{ id, title, due_at, time_limit, allowed_attempts, status }] }` |
+| `wiener conferencias <ref>` | T0 | BBB/Zoom históricos del curso. | `{ conferencias: [...] }` |
 
-### Operativo
+### Calendario, inbox
 
 | Command | Trust | Description | JSON Output |
 |---------|-------|-------------|-------------|
-| `wiener doctor` | T0 | Diagnóstico: red, intranet alive, Canvas alive, sesiones válidas, csrfToken sin cambios, dead-domain bug check. | `{ checks: [{ name, ok, detail }] }` |
-| `wiener schema [comando]` | T0 | Imprime schema JSON de un comando (introspección para agentes). | `{ command, args, output_schema }` |
-| `wiener config show` | T0 | Mostrar config actual (path, perfil, paths). | `{ ... }` |
-| `wiener config path` | T0 | Imprime ruta del config dir. | `{ path }` |
+| `wiener calendario [--dias N]` | T0 | Eventos próximos (default 7 días). | `{ eventos: [{ fecha, tipo, titulo, curso }] }` |
+| `wiener calendario --ics [--out PATH]` | T0 | Descarga ICS de todos los cursos a un solo archivo. | `{ ok, path, eventos }` |
+| `wiener calendario --ics --curso <ref>` | T0 | ICS de un solo curso (anonymous URL). | `{ ok, path, url }` |
+| `wiener inbox [--no-leidos]` | T0 | Conversaciones Canvas. | `{ conversaciones: [{ id, from, subject, last_message_at, unread, count }] }` |
+| `wiener inbox info <id>` | T0 | Mensajes de una conversación. | `{ conversacion, mensajes: [...] }` |
+
+### Pagos / trámites (intranet)
+
+| Command | Trust | Description | JSON Output |
+|---------|-------|-------------|-------------|
+| `wiener pagos` | T0 | Obligaciones / deudas. | `{ total_pendiente, items: [{ concepto, monto, vencimiento, estado }] }` |
+| `wiener pagos historial` | T0 | Pagos realizados. | `{ pagos: [...] }` |
+| `wiener tramite list` | T0 | Trámites en curso. | `{ tramites: [{ id, tipo, estado, fecha_inicio }] }` |
+| `wiener tramite generar --tipo TIPO` | T2 | Genera orden de pago. Preview + monto + `--yes`. | `{ orden_id, monto, concepto, vencimiento }` |
+
+### Mirror namespaces (espejo, mismo backend)
+
+`wiener intranet *` — solo expone subset de comandos backed by intranet:
+`auth login`, `auth logout`, `notas`, `historial`, `horario`, `asistencia`,
+`plan`, `examenes`, `matricula`, `perfil`, `pagos`, `tramite`.
+
+`wiener canvas *` — solo Canvas:
+`auth set-token`, `auth pat new`, `auth clear`, `cursos`, `tareas`, `planner`,
+`calificaciones`, `anuncios`, `archivos`, `modulos`, `syllabus`, `paginas`,
+`discusiones`, `quizzes`, `conferencias`, `calendario`, `inbox`.
+
+Use case: `wiener intranet --help` da una vista filtrada limpia para discoverability;
+`wiener canvas tareas` es equivalente exacto a `wiener tareas` (alias). El usuario
+canónico tipea top-level plano siempre.
 
 ## Trust Ladder
 
 | Level | Name | Friction | Commands |
 |-------|------|----------|----------|
-| T0 | auto | None — runs silently | All read commands (`notas`, `horario`, `asistencia`, `cursos`, `tareas`, etc.) and `doctor`/`schema`/`config` |
-| T1 | log | Audit-log only | (none — every write is T2 here) |
-| T2 | confirm | Show preview, require `--yes` (or interactive confirm in TTY) | `auth login` (touches credentials), `auth canvas set-token`, `tramite generar` (creates a billable order), `archivos download` if file > 50MB |
-| T3 | killswitch | Intent token + explicit confirm | (none — wiener-cli does not move money or destroy data) |
+| T0 | auto | None | All read commands. `doctor`, `schema`, `config`, `auth status`, `auth logout`, `auth canvas clear`, `cursos aliases list/reset`, `archivos download` (≤50MB) |
+| T2 | confirm | Show preview, require `--yes` (or interactive confirm in TTY) | `auth login`, `auth canvas set-token`, `auth canvas pat new` (opens browser), `cursos aliases` (wizard), `tramite generar` (creates billable obligation), `archivos download` (>50MB), `archivos sync` (bulk download) |
+| T3 | killswitch | (none) | `wiener-cli` does not move money or destroy data |
 
-Justification for skipping T3: the highest-stakes write is generating a payment
-order for a trámite, and that's already a T2 with explicit `--yes` because the
-order creates a real S/. obligation in Wiener's billing system. There's no
-"delete account" or "submit final grade" surface.
-
-`auth login` is T2 (not T0) because it touches credentials — the user must
-explicitly confirm "yes I want this CLI to hold my Wienernet session". After
-that, all reads using the cached session are T0.
+Justification: skipping T3. Highest stakes write is `tramite generar` and that's
+already T2 with explicit `--yes`. No "delete account" or "submit final grade"
+surface exists.
 
 ## Safety Rails
 
-Low-stakes domain — no killswitch needed. Hard rules anyway:
-
-- **Never write Wiener creds to disk in plaintext**. Store ASP cookie + Canvas
-  token in OS keychain (`security` on macOS via `~/.kai/keychain` wrapper, or
-  fall back to `~/.wiener/session.json` with `0600` perms only if keychain
-  unavailable, with a loud warning).
+- **Never store passwords on disk**. Intranet password lives in memory during
+  `auth login` only. PAT is stored in OS keychain (macOS Keychain Access via
+  `security` cmd; Linux fallback to file with `0600` perms + loud warning).
 - **No retry on auth failure**. If `autenticate.asp` returns `estado: "0"` once,
-  abort and surface the message — do NOT retry; risk is account lockout.
-- **No bulk write of `tramite generar`**. Even with `--yes`, refuse to run more
-  than one `tramite generar` per minute. Stops accidental fan-out.
-- **Logout on session-expiry detection**. If any read returns the
-  "SiguNet.htm" / NXDOMAIN-redirect signature, clear the local session
-  immediately and prompt re-auth — do NOT silently retry.
+  abort. Account lockout risk on intranet; PAT-side returns 401 cleanly.
+- **No bulk write of `tramite generar`**. Even with `--yes`, refuse >1 per
+  minute. Stops accidental fan-out.
+- **Detect session expiry**. If intranet response contains `SiguNet.htm` or
+  302 to `sso.asp`, clear session, surface `error.code = "auth-expired"`. Do
+  NOT silently retry.
+- **Detect PAT revocation**. If Canvas returns 401 with `WWW-Authenticate: Bearer`,
+  clear stored PAT, surface `error.code = "canvas-token-invalid"` with hint
+  to regenerate via `wiener auth canvas pat new`.
+- **`watch` is opt-in only**. Never auto-starts at login. Single instance per
+  user (lockfile in `~/.wiener/watch.pid`).
+- **`archivos sync` shows total size BEFORE downloading** and requires `--yes`.
+  Default cap: 500 MB per sync. Override with `--max-size N`.
 
 ## Agent-First Design
 
-Required for every command, regardless of domain stakes:
+Required for every command:
 
-- **`--json`** flag on every command. Default is human-formatted (tables, color);
-  `--json` emits a single JSON object to stdout, nothing else, exit code for
-  status. Errors in `--json` mode emit `{ ok: false, error: { code, message, hint? } }` to stderr and exit 1.
-- **`--dry-run`** for the 4 mutating commands (`auth login`, `auth canvas set-token`,
-  `tramite generar`, `archivos download`). Returns `{ dryRun: true, input, status: "would-do" }`.
-- **NDJSON streaming for paginated results**: `wiener tareas --ndjson` emits one
-  JSON object per line for huge lists. Default `--json` returns a wrapped array.
-- **`--params '<json>'` canonical input**: any command accepting flags also
-  accepts `--params` with a JSON object. Sugar flags + `--params` → `--params`
-  wins on conflict. Prevents agent flag-collision bugs.
-- **`--fields a,b,c`** to project specific JSON keys (saves agent context).
-- **`--no-input` flag**: forces non-interactive mode, no prompts, fail-fast on
-  anything needing TTY. Auto-enabled when stdin not a TTY.
-- **`wiener schema <command>`**: every command publishes its input/output JSON
-  schema — agents introspect at runtime instead of relying on `--help`.
-- **`wiener doctor --json`**: agents must run this before any real op when
-  unsure of state. Returns structured ok/fail per check.
-- **MCP surface (future)**: not v1. After CLI stabilizes, expose `notas`,
-  `horario`, `tareas`, `calendario`, `anuncios` as MCP tools. Skip for now.
+- **`--json`** flag everywhere. Default human-formatted (color tables); `--json`
+  emits one JSON object to stdout. Errors → `{ ok: false, error: { code, message, hint? } }` to stderr, exit 1.
+- **`--ndjson`** for paginated/streaming results (especially `watch`, `tareas`, `archivos`).
+- **`--dry-run`** for T2 mutations.
+- **`--params '<json>'`** canonical input override; sugar flags + `--params` → `--params` wins.
+- **`--fields a,b,c`** projection.
+- **`--no-input`** forces non-interactive mode.
+- **`--exact`** (course resolver) forces exact match.
+- **`--yes`** skips T2 confirmations.
+- **`wiener schema <command>`** publishes I/O JSON schema for runtime introspection.
+- **Audit log** at `~/.wiener/audit.jsonl`, all T2 commands always; T0 only with `--verbose`.
 
-### --json contract examples
+### Canonical JSON envelope
 
 ```jsonc
-// wiener notas --periodo 2026-I --json
+// Success
 {
   "ok": true,
-  "periodo": "2026-I",
-  "alumno": {
-    "codigo": "aXXXXXXXXX",
-    "carrera": "Ingenieria de Software",
-    "ciclo": 6
-  },
-  "ponderado_acumulado": 15.42,
-  "ponderado_historico": 14.88,
-  "orden_merito": 27,
-  "cursos": [
-    {
-      "codigo": "AC4061",
-      "nombre": "CIENCIA Y DESCUBRIMIENTO",
-      "ciclo": 6,
-      "creditos": 3,
-      "nota_final": 17,
-      "estado": "aprobado",
-      "modalidad": "Virtual"
-    }
-  ]
+  "data": { /* command-specific */ },
+  "meta": {
+    "duration_ms": 412,
+    "rate_limit_remaining": 698.5,  // Canvas only
+    "from_cache": false
+  }
 }
 
-// wiener horario hoy --json
+// Error
 {
-  "ok": true,
-  "fecha": "2026-04-27",
-  "dia": "L",
-  "bloques": [
-    {
-      "time_start": "07:00",
-      "time_end": "10:00",
-      "course_code": "AC4061",
-      "course_name": "CIENCIA Y DESCUBRIMIENTO",
-      "section": "AC6M28",
-      "type": "Teoria",
-      "room": "Remoto-Videoconf.",
-      "building": "Sede Virtual",
-      "attribute": "REGULAR",
-      "teacher": "RAMIREZ, {REDACTED_NAME}"
+  "ok": false,
+  "error": {
+    "code": "course-ambiguous",
+    "message": "Multiple courses match \"labo\"",
+    "hint": "Try `wiener cursos` to see exact aliases",
+    "details": {
+      "candidates": [
+        { "code": "FB6M4", "alias": "labo", "name": "LABORATORIO Y DIAGNÓSTICO II", "score": 0.98 },
+        { "code": "FB6N3", "alias": "labquim", "name": "LABORATORIO DE QUÍMICA", "score": 0.74 }
+      ]
     }
-  ]
+  }
 }
 ```
 
-### Audit log format
+### Error codes (canonical set)
 
-`~/.wiener/audit.jsonl`, one JSON object per line:
+| Code | When |
+|---|---|
+| `auth-required` | No session, command needs one |
+| `auth-expired` | Intranet session timed out |
+| `canvas-not-configured` | No PAT set, Canvas command attempted |
+| `canvas-token-invalid` | PAT rejected (401) |
+| `course-not-found` | Resolver returned 0 candidates |
+| `course-ambiguous` | Resolver returned >1 with no clear winner |
+| `network-error` | DNS/TCP/TLS issue |
+| `rate-limited` | Canvas `rlr` < 50 + retry-after present |
+| `parse-error` | HTML parser failed (intranet shape changed) |
+| `validation-error` | Input failed schema |
+| `not-implemented` | Command exists but feature deferred |
+
+## `wiener nuevo` — diff state
+
+State stored at `~/.wiener/state.json`:
 
 ```jsonc
-{ "ts": "2026-04-26T18:42:13Z", "cmd": "notas", "args": { "periodo": "2026-I" }, "result": "ok", "duration_ms": 412, "rows": 7 }
-{ "ts": "2026-04-26T18:43:02Z", "cmd": "tramite generar", "args": { "tipo": "constancia" }, "result": "ok", "duration_ms": 1850, "orden_id": "OP-2026-12345", "monto": 30 }
+{
+  "last_run_at": "2026-04-26T18:42:13Z",
+  "snapshots": {
+    "anuncios": { "by_course": { "131067": { "last_id": "12345", "last_posted_at": "..." } } },
+    "archivos": { "by_course": { "131067": { "last_modified_at": "..." } } },
+    "calificaciones": { "by_assignment": { "964446": { "score": 17, "graded_at": "..." } } },
+    "tareas": { "by_course": { "131067": { "ids": ["964446", ...] } } },
+    "modulos": { "by_course": { "131067": { "items_count": 23 } } }
+  }
+}
 ```
 
-T2 commands always log; T0 commands log only when `--verbose` is set (avoid log
-explosion for cron-driven `horario ahora` checks).
+Each `wiener nuevo` (or `wiener` solo) call:
+1. Fetch current state of each surface (anuncios/archivos/calificaciones/tareas/modulos).
+2. Diff against snapshot.
+3. Emit deltas with type + curso + url.
+4. Update snapshot.
+
+`--dry-run` does diff without updating snapshot — useful for `watch` peek mode.
+
+## `wiener watch` — background loop
+
+Foreground TTY mode (default): runs in current terminal, NDJSON stream output.
+
+Background mode (`--detach`): writes pid to `~/.wiener/watch.pid`, logs to
+`~/.wiener/watch.log`, sends macOS notifications via `osascript -e 'display notification ...'`
+when diff has items.
+
+Single instance enforced by lockfile. `wiener watch stop` terminates.
+
+Optional WhatsApp routing: `--whatsapp` posts to Hunter's Kapso conversation
+(uses existing `~/.kai/webhook-secret` plumbing in his ecosystem) instead of
+macOS notif. Disabled by default.
 
 ## Rabbit Holes
 
-Things that are tempting but not v1:
+Things tempting but NOT v1:
 
-- **Programmatic SAML2 / Entra dance**: brittle, anti-pattern, replace with
-  manual token + `--canvas-token` flag.
-- **Matricula portal automation**: `matricula.uwiener.edu.pe` lets you re-pick
-  courses at semester start. High-stakes (locks your schedule for 4 months) and
-  recon-only-once-per-year value. Defer to v2 if ever.
-- **Pagos:8443 banking integration**: payments portal. Real money, T3 territory.
-  Out of scope — let the user pay through their bank app.
-- **Sofydoc tracking**: trámites long-tail tracking. Separate domain, separate
-  auth, low frequency. Defer.
-- **Notifications / cron scheduling**: building a "notify me when grade
-  arrives" feature is its own product. Compose externally with `cron + wiener
-  notas --json + diff`. CLI just provides the data.
-- **Web UI / dashboard**: this is a CLI. If a UI is wanted, build it on top
-  consuming the JSON output.
-- **TUI / interactive picker**: nice to have for `tareas info <id>`, but
-  not v1. JSON output is enough for agents.
-- **OCR of carné universitario / boleta de pago**: not the CLI's job.
+- **Programmatic SAML2 login for Canvas**: cut. PAT is the path.
+- **Submission upload** (`wiener tareas submit`): high-stakes, deferred. Read-only first.
+- **Discussion posting** (`wiener discusiones reply`): same.
+- **Matrícula portal automation** (`matricula.uwiener.edu.pe`): separate domain,
+  high-stakes (locks schedule for semester), defer to v2.
+- **Pagos:8443 banking integration**: real money, T3 territory. Out of scope.
+- **Sofydoc trámite tracking**: separate domain, low frequency. Defer.
+- **Multi-account / multi-student**: profiles supported in scaffold but only
+  exercise default profile in v1.
+- **Web UI / dashboard / TUI**: this is a CLI. JSON contract enables UIs to be
+  built externally.
+- **OCR of carné / boleta**: not the CLI's job.
+- **MCP server wrapping the CLI**: deferred until shape stabilizes (~v0.7+).
+- **Notifications fan-out (Slack, Telegram)**: only macOS notif + optional
+  WhatsApp. Others composable externally with `--ndjson | jq | curl`.
+- **Cron scheduling**: out of scope. Compose with `cron + wiener nuevo --json | jq`.
 
 ## No-Gos
 
-Hard boundaries this CLI will never cross:
+Hard boundaries, never:
 
-- **Will not store Wiener passwords on disk**. Only ASP cookie + Canvas token.
-  Password is prompt-only during `auth login`, lives in memory until request,
-  then is dropped.
+- **Will not store Wiener passwords on disk**. Intranet password lives in memory
+  for one request, dropped immediately.
 - **Will not auto-execute `tramite generar`** without explicit `--yes` or
   interactive confirm. Even agents must pass `--yes` after preview.
-- **Will not pay anything**. No banking integration. Generates orders, never
-  pays them.
-- **Will not modify grades, attendance, or any academic record**. Read-only on
-  academic data. (The portal doesn't allow it anyway, this is a defense-in-depth
-  rule.)
-- **Will not bypass Microsoft Entra MFA** or attempt to automate Entra login
-  flows. If a user's MS account requires MFA, Canvas access requires manual
-  token generation, period.
-- **Will not scrape / archive other students' data**. Only the authenticated
-  user's own records. (No bulk-download of class roster info beyond what
-  Canvas's own UI shows.)
-- **Will not disable TLS verification** under any flag. Wiener's certs work,
-  there's no excuse.
+- **Will not pay anything**. Generates orders, never pays.
+- **Will not modify grades, attendance, submissions, or any academic record**.
+  Read-only on academic data. Defense-in-depth, even though portal doesn't allow it.
+- **Will not bypass MS Entra MFA** or attempt SAML automation. Manual PAT
+  generation is the only Canvas auth path.
+- **Will not scrape other students' data**. Only authenticated user's records.
+- **Will not disable TLS verification**.
+- **Will not upload submissions in v1**. Even if API supports it.
+- **`watch` will not run by default** — explicit opt-in always.
 
-## Open Questions
+## Open Questions (resolve during implementation)
 
-Carryover from recon, will resolve during implementation:
+1. **CSRF token rotation**: scrape every session anyway. Probe weekly via
+   `wiener doctor` and surface drift in `--debug`.
+2. **PAT generation lockdown timing**: Wiener could disable `users#manageable_access_tokens`
+   any time. `wiener doctor` includes a "can-create-pat" check that hits
+   `/profile/settings` HTML and looks for the link.
+3. **Notas page period switching**: GET param? Form POST? Verify on day 2.
+4. **`tramite generar` exact endpoint**: not exercised in recon. Verify on day 4.
+5. **Conversaciones SQS-style**: Canvas inbox uses long-polling for
+   real-time. v1 just polls on `wiener inbox`; `wiener watch --inbox` for
+   notif-on-new-message would need separate polling logic.
+6. **Module item types**: Canvas modules have `Page`/`Assignment`/`File`/`ExternalUrl`/etc.
+   `wiener modulos` should resolve each type to an actionable URL — verify
+   the type set used by Wiener courses on day 3.
+7. **Quizzes API surface**: Classic Quizzes vs New Quizzes use different
+   endpoints. Detect which Wiener uses.
+8. **`tareas` cross-course performance**: 11 active courses × `/assignments`
+   call = 11 requests for `wiener tareas`. Implement parallel-fetch with
+   concurrency=4 and cache 5 min. Probably fine but measure.
 
-1. **Are Canvas access tokens enabled for Wiener students?** Need MS Entra
-   credentials to verify. If disabled, Canvas v1.1 must use cookie-extraction
-   fallback or be deferred entirely.
-2. **Does `csrfToken=9144AF7` rotate?** Implementation will scrape it every
-   session anyway — solves both cases. Worth a monthly external probe.
-3. **What does the Notas page POST/GET need to switch periods?** Recon saw the
-   selector but didn't trigger a change. Implementation will reverse that.
-4. **What are the exact field names in `pagos/obligaciones.asp`?** Recon didn't
-   land there. Will need a 30-min browser session during implementation.
-5. **Is `tramite generar` actually an XHR or a form POST?** Recon noted the
-   path but didn't exercise it. Will need test of a free trámite (constancia
-   simple) to map the flow.
+## Implementation Order
+
+Day-by-day plan in §Appetite. v0.1.0 ships at end of day 2 (intranet only),
+v0.4.0 at day 4 (Canvas reads), v0.6.0 at day 6 (nuevo + watch), v0.7.0 at day
+7 after smoke pass. Tag each in git, no npm publish until v0.7.0 stabilizes.
+
+After v0.7.0, optional v1.0:
+- MCP server wrapping the CLI (1 day).
+- WhatsApp routing for `wiener watch` (0.5 day).
+- Bulk export of all course materials (`wiener archivos sync --all`, 0.5 day).
