@@ -7,14 +7,14 @@ import { loadCanvasSession } from "../../auth/store.js";
 import { CanvasNotConfiguredError } from "../../errors.js";
 import { canvasFetchAll } from "./client.js";
 
-async function requireCanvasToken(profile = "default"): Promise<string> {
+async function requireToken(profile = "default"): Promise<string> {
   const session = await loadCanvasSession(profile);
   if (!session) throw new CanvasNotConfiguredError();
   return session.token;
 }
 
 export async function fetchUpcomingEvents(profile = "default"): Promise<CanvasUpcomingEvent[]> {
-  const token = await requireCanvasToken(profile);
+  const token = await requireToken(profile);
   const res = await canvasFetchAll<CanvasUpcomingEvent>("/api/v1/users/self/upcoming_events", {
     token,
   });
@@ -22,7 +22,7 @@ export async function fetchUpcomingEvents(profile = "default"): Promise<CanvasUp
 }
 
 export async function fetchTodoItems(profile = "default"): Promise<CanvasTodoItem[]> {
-  const token = await requireCanvasToken(profile);
+  const token = await requireToken(profile);
   const res = await canvasFetchAll<CanvasTodoItem>("/api/v1/users/self/todo", { token });
   return res.data;
 }
@@ -37,7 +37,7 @@ export async function fetchCalendarEvents(opts: {
   perPage?: number;
   profile?: string;
 }): Promise<CanvasCalendarEvent[]> {
-  const token = await requireCanvasToken(opts.profile ?? "default");
+  const token = await requireToken(opts.profile ?? "default");
   const params = new URLSearchParams();
   for (const code of opts.contextCodes) params.append("context_codes[]", code);
   params.set("start_date", opts.startDate);

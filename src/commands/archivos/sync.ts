@@ -5,6 +5,7 @@ import type { CanvasFile } from "../../lib/api/canvas/files.ts";
 import { listAllFiles } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
+import { emitNextSteps } from "../../lib/agent/next-steps.ts";
 import { isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
@@ -283,11 +284,15 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
     if (opts.json) {
       printJson(successEnvelope(resultData, { duration_ms: durationMs, from_cache: false }));
     } else {
-      printLine(
-        pc.bold(
-          `\nSync complete: ${downloaded} downloaded, ${skipped} skipped, ${failed} failed (${durationMs}ms)`,
-        ),
-      );
+      const labelW = 15;
+      console.log(`\n${pc.cyan("✓")} ${pc.bold("Sincronización completa")}\n`);
+      console.log(`  ${pc.dim("Descargados:".padEnd(labelW))} ${downloaded} archivos${downloadSize > 0 ? ` (${formatSize(downloadSize)})` : ""}`);
+      console.log(`  ${pc.dim("Saltados:".padEnd(labelW))} ${skipped} (ya existían con mismo tamaño)`);
+      console.log(`  ${pc.dim("Fallidos:".padEnd(labelW))} ${failed === 0 ? pc.green("0") : pc.red(String(failed))}`);
+      emitNextSteps([
+        { command: `open "${destDir}"`, description: "abrir carpeta" },
+        { command: `wiener archivos arbol ${opts.courseId}`, description: "ver estructura del curso", optional: true },
+      ]);
     }
   } catch (e) {
     if (isWienerLike(e)) {

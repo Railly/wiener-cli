@@ -63,6 +63,7 @@ import type { SectionType } from "./types/course.js";
 
 import { registerConfig } from "./commands/config.js";
 import { registerDoctor } from "./commands/doctor.js";
+import { registerLog } from "./commands/log.js";
 import { registerSchema } from "./commands/schema.js";
 
 // Phase D: panorama + daily commands
@@ -650,6 +651,7 @@ registerWatch(program);
 registerDoctor(program);
 registerSchema(program);
 registerConfig(program);
+registerLog(program);
 
 program.parseAsync(process.argv).catch((e: Error) => {
   console.error(e.message);

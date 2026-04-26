@@ -4,6 +4,7 @@ import pc from "picocolors";
 import { getFile } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
+import { emitNextSteps } from "../../lib/agent/next-steps.ts";
 import { WienerError, isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
@@ -33,12 +34,13 @@ function formatSize(bytes: number): string {
 function renderProgress(downloaded: number, total: number, filename: string): void {
   if (total === 0) return;
   const pct = Math.min(100, Math.floor((downloaded / total) * 100));
-  const barWidth = 30;
+  const barWidth = 32;
   const filled = Math.floor((pct / 100) * barWidth);
-  const bar = "█".repeat(filled) + "░".repeat(barWidth - filled);
+  const bar = pc.cyan("█".repeat(filled)) + pc.dim("░".repeat(barWidth - filled));
   const sizeStr = `${formatSize(downloaded)} / ${formatSize(total)}`;
+  const speed = "";
   process.stderr.write(
-    `\r  ${pc.cyan(filename.slice(0, 30).padEnd(30))} [${bar}] ${pct}% ${sizeStr}  `,
+    `\r${pc.dim("Descargando:")} ${pc.bold(filename.slice(0, 28))}\n[${bar}] ${pct}%  ${sizeStr}${speed}  \x1b[1A`,
   );
 }
 
@@ -240,10 +242,17 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
     if (opts.json) {
       printJson(successEnvelope(resultData, { duration_ms: durationMs, from_cache: false }));
     } else {
-      printLine(
-        pc.green(`\n✓ ${file.display_name}`) +
-          pc.dim(` → ${outPath} (${formatSize(downloaded)}, ${durationMs}ms)`),
-      );
+      if (showProgress) process.stderr.write("\n");
+      const labelW = 10;
+      console.log(`\n${pc.cyan("✓")} ${pc.bold("Descargado")}\n`);
+      console.log(`  ${pc.dim("Archivo:".padEnd(labelW))} ${pc.bold(file.display_name)}`);
+      console.log(`  ${pc.dim("Tamaño:".padEnd(labelW))} ${formatSize(downloaded)}`);
+      console.log(`  ${pc.dim("Destino:".padEnd(labelW))} ${outPath}`);
+      console.log(`  ${pc.dim("Duración:".padEnd(labelW))} ${(durationMs / 1000).toFixed(1)}s`);
+      emitNextSteps([
+        { command: `open "${outPath}"`, description: "abrir el archivo" },
+        { command: `wiener archivos sync <ref>`, description: "descargar todo el curso", optional: true },
+      ]);
     }
   } catch (e) {
     if (isWienerLike(e)) {
