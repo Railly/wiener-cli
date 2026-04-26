@@ -4,25 +4,11 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
+import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { emit } from "../../lib/output/json.js";
-import type { CanvasCourse } from "../../types/canvas.js";
-import type { Course } from "../../types/course.js";
-
-function toList(canvasCourses: CanvasCourse[]): Course[] {
-  return canvasCourses.map((c) => ({
-    id: c.id,
-    code: c.course_code,
-    name: c.name,
-    alias: c.course_code.toLowerCase(),
-    canvasName: c.name,
-    term: c.term?.name,
-    role: c.enrollments?.[0]?.role ?? "StudentEnrollment",
-    calendarIcsUrl: c.calendar?.ics,
-  }));
-}
 
 async function downloadIcs(url: string): Promise<string> {
   const res = await fetch(url);
@@ -63,8 +49,8 @@ export async function runCalendarioIcs(opts: {
     const outPath = opts.out ?? join(process.cwd(), "wiener-calendar.ics");
 
     if (opts.curso) {
-      const courseList = toList(courses);
-      const resolution = resolveCourse(opts.curso, courseList, {
+      const logical = groupBySection(courses);
+      const resolution = resolveCourse(opts.curso, logical, {
         exact: opts.exact,
         noInput: opts.noInput,
       });
@@ -80,7 +66,7 @@ export async function runCalendarioIcs(opts: {
         return;
       }
 
-      const resolvedCourse = resolution.kind === "exact" ? resolution.course : resolution.course;
+      const resolvedCourse = resolution.course;
       const matchingCourses = courses.filter((c) => c.course_code === resolvedCourse.code);
 
       const icsUrls = matchingCourses.map((c) => c.calendar?.ics).filter(Boolean) as string[];

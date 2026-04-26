@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { resolveCourse } from "../../src/lib/courses/resolver.js";
-import type { Course } from "../../src/types/course.js";
+import type { Course, LogicalCourse } from "../../src/types/course.js";
 
 const FIXTURE_COURSES: Course[] = [
   {
@@ -126,5 +126,52 @@ describe("resolveCourse — non-interactive mode", () => {
     if (result.kind === "unique-fuzzy") {
       expect(result.suggested).toBe(false);
     }
+  });
+});
+
+describe("resolveCourse — defensive guards (null/undefined fields)", () => {
+  it("skips courses with null/undefined code without crashing", () => {
+    const mixed = [
+      ...FIXTURE_COURSES,
+      { id: "999", code: undefined as unknown as string, name: "BAD COURSE", alias: "bad", secciones: [] },
+    ] as Course[];
+    expect(() => resolveCourse("FB6N1", mixed)).not.toThrow();
+    const result = resolveCourse("FB6N1", mixed);
+    expect(result.kind).toBe("exact");
+  });
+
+  it("handles empty courses array", () => {
+    const result = resolveCourse("FB6N1", []);
+    expect(result.kind).toBe("no-match");
+  });
+});
+
+describe("resolveCourse — LogicalCourse input (no id field)", () => {
+  const logicalCourses: LogicalCourse[] = [
+    {
+      code: "FB6N2",
+      name: "FARMACIA CLÍNICA I",
+      alias: "farmacia",
+      secciones: [{ id: "201", seccion: "T", name: "FARMACIA CLÍNICA I - T" }],
+    },
+    {
+      code: "FB6N2",
+      name: "PREPARACIONES FARMACÉUTICAS",
+      alias: "preparaciones",
+      secciones: [{ id: "501", seccion: "P1", name: "PREPARACIONES FARMACÉUTICAS - P1" }],
+    },
+  ];
+
+  it("resolves exact alias on LogicalCourse", () => {
+    const result = resolveCourse("farmacia", logicalCourses);
+    expect(result.kind).toBe("exact");
+    if (result.kind === "exact") {
+      expect(result.course.name).toBe("FARMACIA CLÍNICA I");
+    }
+  });
+
+  it("resolves substring 'farma' as ambiguous across multiple LogicalCourses", () => {
+    const result = resolveCourse("farma", logicalCourses);
+    expect(result.kind).toBe("ambiguous");
   });
 });

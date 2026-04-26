@@ -5,26 +5,12 @@
 import pc from "picocolors";
 import { fetchAssignment } from "../../lib/api/canvas/assignments.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
+import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { formatDate, htmlToText, renderKeyValue, renderSection } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
-import type { CanvasCourse } from "../../types/canvas.js";
-import type { Course } from "../../types/course.js";
-
-function canvasCoursesToCourseList(canvasCourses: CanvasCourse[]): Course[] {
-  return canvasCourses.map((c) => ({
-    id: c.id,
-    code: c.course_code,
-    name: c.name,
-    alias: c.course_code.toLowerCase(),
-    canvasName: c.name,
-    term: c.term?.name,
-    role: c.enrollments?.[0]?.role ?? "StudentEnrollment",
-    calendarIcsUrl: c.calendar?.ics,
-  }));
-}
 
 export async function runTareasInfo(
   assignmentId: string,
@@ -52,8 +38,8 @@ export async function runTareasInfo(
     }
 
     const canvasCourses = await fetchActiveCourses();
-    const courses = canvasCoursesToCourseList(canvasCourses);
-    const resolution = resolveCourse(opts.curso, courses, {
+    const logical = groupBySection(canvasCourses);
+    const resolution = resolveCourse(opts.curso, logical, {
       exact: opts.exact,
       noInput: opts.noInput,
     });
@@ -69,7 +55,8 @@ export async function runTareasInfo(
       return;
     }
 
-    const course = resolution.kind === "exact" ? resolution.course : resolution.course;
+    const course = resolution.course;
+    const primarySection = course.secciones[0];
     const aid = Number.parseInt(assignmentId, 10);
     if (Number.isNaN(aid)) {
       const e = err("validation-error", "Assignment ID must be a number");
@@ -82,7 +69,7 @@ export async function runTareasInfo(
       return;
     }
 
-    const assignment = await fetchAssignment(course.id, aid);
+    const assignment = await fetchAssignment(Number(primarySection?.id ?? course.secciones[0]?.id), aid);
     const sub = assignment.submission;
 
     const data = {
@@ -122,7 +109,7 @@ export async function runTareasInfo(
       renderSection(
         `Tarea #${assignment.id} — ${assignment.name}`,
         renderKeyValue({
-          Curso: `${course.code} (${course.name})`,
+          Curso: `${course.code} (${course.name ?? ""})`,
           Vencimiento: formatDate(assignment.due_at),
           Puntos: String(assignment.points_possible),
           Tipos: assignment.submission_types.join(", "),

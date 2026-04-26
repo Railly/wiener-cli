@@ -11,27 +11,13 @@ import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
-import type { CanvasCourse } from "../../types/canvas.ts";
-import type { Course, SectionType } from "../../types/course.ts";
+import type { SectionType } from "../../types/course.ts";
 import {
   formatPreview,
   pickSubmissionType,
   resolveAssignment,
   validateUploads,
 } from "./submit-helpers.ts";
-
-function canvasCoursesToCourseList(canvasCourses: CanvasCourse[]): Course[] {
-  return canvasCourses.map((c) => ({
-    id: c.id,
-    code: c.course_code,
-    name: c.name,
-    alias: c.course_code.toLowerCase(),
-    canvasName: c.name,
-    term: c.term?.name,
-    role: c.enrollments?.[0]?.role ?? "StudentEnrollment",
-    calendarIcsUrl: c.calendar?.ics,
-  }));
-}
 
 export interface TareasSubmitOptions {
   courseRef: string;
@@ -71,8 +57,8 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
 
   try {
     const canvasCourses = await fetchActiveCourses(opts.profile);
-    const courses = canvasCoursesToCourseList(canvasCourses);
-    const resolution = resolveCourse(opts.courseRef, courses, {
+    const logical = groupBySection(canvasCourses);
+    const resolution = resolveCourse(opts.courseRef, logical, {
       exact: opts.exact,
       noInput: opts.noInput,
     });
@@ -108,11 +94,7 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
     }
 
     const resolvedCourse = resolution.course;
-    const logical = groupBySection(canvasCourses);
-    const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
-    const secciones = logicalCourse?.secciones ?? [
-      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
-    ];
+    const secciones = resolvedCourse.secciones;
 
     let targetCourseId: number;
 
@@ -144,9 +126,9 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
         );
       }
 
-      targetCourseId = matched.id;
+      targetCourseId = Number(matched.id);
     } else {
-      targetCourseId = secciones[0]?.id ?? resolvedCourse.id;
+      targetCourseId = Number(secciones[0]?.id ?? 0);
     }
 
     const assignment = await resolveAssignment(targetCourseId, opts.assignmentRef);

@@ -1,4 +1,5 @@
 export type Section = "T" | "P" | "P1" | "P2" | "PD" | "PE" | "L" | string;
+export type SectionType = Section;
 
 export interface CanvasCourse {
   id: string;

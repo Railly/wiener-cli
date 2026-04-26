@@ -11,45 +11,50 @@ export function parseSectionFromName(name: string): { baseName: string; seccion:
   return { baseName: name.trim(), seccion: "T" };
 }
 
-function stripCodePrefix(name: string, code: string): string {
-  const prefix = `${code} - `;
-  if (name.startsWith(prefix)) return name.slice(prefix.length);
-  const prefixNoSpace = `${code}-`;
-  if (name.startsWith(prefixNoSpace)) return name.slice(prefixNoSpace.length);
-  return name;
+function normalizeBaseName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function groupBySection(
   courses: CanvasCourse[],
   aliasMap: Record<string, string> = {},
 ): LogicalCourse[] {
-  const byCodeName = new Map<string, LogicalCourse>();
+  const byKey = new Map<string, LogicalCourse>();
 
   for (const course of courses) {
     const code = course.course_code;
-    const { baseName: rawBaseName, seccion } = parseSectionFromName(course.name);
-    const baseName = stripCodePrefix(rawBaseName, code);
-    const key = `${code}::${baseName}`;
+    if (!code) continue;
 
-    const existing = byCodeName.get(key);
+    const { baseName, seccion } = parseSectionFromName(course.name ?? "");
+    const cleanedBaseName = baseName.replace(new RegExp(`^${code}\\s*-\\s*`, "i"), "");
+    const key = `${code}::${normalizeBaseName(cleanedBaseName)}`;
+
+    const aliasKey = `${code}::${(course.name ?? "").trim()}`;
+    const alias = aliasMap[aliasKey] ?? aliasMap[code] ?? code.toLowerCase();
+
+    const existing = byKey.get(key);
     if (existing) {
       existing.secciones.push({
         id: course.id,
         seccion,
-        name: course.name,
+        name: course.name ?? "",
       });
     } else {
-      const alias = aliasMap[key] ?? aliasMap[code] ?? code.toLowerCase();
-      byCodeName.set(key, {
+      byKey.set(key, {
         code,
-        name: baseName,
+        name: cleanedBaseName || baseName,
         alias,
-        secciones: [{ id: course.id, seccion, name: course.name }],
+        secciones: [{ id: course.id, seccion, name: course.name ?? "" }],
         term: course.term?.name,
         role: course.enrollments?.[0]?.role,
       });
     }
   }
 
-  return Array.from(byCodeName.values());
+  return Array.from(byKey.values());
 }
