@@ -1,9 +1,11 @@
 // wiener calendario --ics [--out PATH] [--curso <ref>]
 
 import { writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
+import { emitNextSteps } from "../../lib/agent/next-steps.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
@@ -51,6 +53,19 @@ function mergeIcs(calendars: string[]): string {
   ].join("\r\n")}\r\n`;
 }
 
+function defaultOutPath(): string {
+  return join(homedir(), "wiener-calendar.ics");
+}
+
+function printIcsSummary(outPath: string, courseCount: number, eventCount: number): void {
+  console.log(`\n${pc.cyan("✓")} ${pc.bold("Calendario exportado")}\n`);
+  const labelW = 10;
+  console.log(`  ${pc.dim("Archivo:".padEnd(labelW))} ${pc.bold(outPath.split("/").pop() ?? outPath)}`);
+  console.log(`  ${pc.dim("Ruta:".padEnd(labelW))} ${outPath}`);
+  console.log(`  ${pc.dim("Cursos:".padEnd(labelW))} ${courseCount}`);
+  console.log(`  ${pc.dim("Eventos:".padEnd(labelW))} ${eventCount}`);
+}
+
 export async function runCalendarioIcs(opts: {
   json?: boolean;
   out?: string;
@@ -60,7 +75,7 @@ export async function runCalendarioIcs(opts: {
 }): Promise<void> {
   try {
     const courses = await fetchActiveCourses();
-    const outPath = opts.out ?? join(process.cwd(), "wiener-calendar.ics");
+    const outPath = opts.out ?? defaultOutPath();
 
     if (opts.curso) {
       const courseList = toList(courses);
@@ -80,7 +95,7 @@ export async function runCalendarioIcs(opts: {
         return;
       }
 
-      const resolvedCourse = resolution.kind === "exact" ? resolution.course : resolution.course;
+      const resolvedCourse = resolution.course;
       const matchingCourses = courses.filter((c) => c.course_code === resolvedCourse.code);
 
       const icsUrls = matchingCourses.map((c) => c.calendar?.ics).filter(Boolean) as string[];
@@ -97,13 +112,22 @@ export async function runCalendarioIcs(opts: {
 
       const primaryUrl = icsUrls[0] as string;
       const icsContent = await downloadIcs(primaryUrl);
+      const eventCount = (icsContent.match(/BEGIN:VEVENT/g) ?? []).length;
       writeFileSync(outPath, icsContent);
 
       if (opts.json) {
-        emit(ok({ ok: true, path: outPath, url: primaryUrl }));
+        emit(ok({ ok: true, path: outPath, url: primaryUrl, eventos: eventCount }));
         return;
       }
-      console.log(pc.green(`ICS guardado: ${outPath}`));
+
+      printIcsSummary(outPath, 1, eventCount);
+      emitNextSteps([
+        { command: `open "${outPath}"`, description: "importar en Apple Calendar" },
+        {
+          command: `wiener calendario --ics -o otro.ics`,
+          description: "exportar todo el calendario",
+        },
+      ]);
       return;
     }
 
@@ -130,8 +154,24 @@ export async function runCalendarioIcs(opts: {
       return;
     }
 
-    console.log(pc.green(`ICS merged guardado: ${outPath}`));
-    console.log(pc.dim(`  ${courses.length} cursos, ${eventCount} eventos`));
+    printIcsSummary(outPath, courses.length, eventCount);
+
+    emitNextSteps([
+      {
+        command: `open ~/wiener-calendar.ics`,
+        description: "importar en Apple Calendar",
+      },
+      {
+        command: "https://calendar.google.com → Configuración → Importar",
+        description: "importar en Google Calendar",
+        optional: true,
+      },
+      {
+        command: `wiener calendario --ics --curso <ref> -o curso.ics`,
+        description: "exportar solo un curso",
+        optional: true,
+      },
+    ]);
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));
