@@ -1,6 +1,7 @@
 // wiener tareas hoy — due today (America/Lima) + overdue
 
 import pc from "picocolors";
+import { NEXT_STEPS, emitNextSteps } from "../../lib/agent/next-steps.js";
 import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
@@ -38,19 +39,22 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
 
     if (atrasadas.length === 0 && hoy.length === 0) {
       console.log(pc.green("No hay tareas vencidas ni para hoy."));
+      emitNextSteps(
+        NEXT_STEPS.afterTareasHoy as readonly { command: string; description: string }[],
+      );
       return;
     }
 
     if (atrasadas.length > 0) {
       const rows = atrasadas.map((t) => ({
         id: String(t.id),
-        nombre: t.name,
-        vencio: formatDate(t.due_at),
-        estado: t.submitted ? pc.yellow("entregado tarde") : pc.red("ATRASADA"),
+        nombre: pc.bold(t.name),
+        vencio: pc.bold(pc.red(formatDate(t.due_at))),
+        estado: t.submitted ? pc.yellow("entregado tarde") : pc.bold(pc.red("ATRASADA")),
       }));
       console.log(
         renderSection(
-          "Atrasadas",
+          pc.bold(pc.red("Atrasadas")),
           renderTable(rows, [
             { header: "ID", key: "id" },
             { header: "Nombre", key: "nombre", maxWidth: 45 },
@@ -70,7 +74,7 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
       }));
       console.log(
         renderSection(
-          "Hoy",
+          pc.bold(pc.yellow("Hoy")),
           renderTable(rows, [
             { header: "ID", key: "id" },
             { header: "Nombre", key: "nombre", maxWidth: 45 },
@@ -80,12 +84,15 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
         ),
       );
     }
+
+    emitNextSteps(NEXT_STEPS.afterTareasHoy as readonly { command: string; description: string }[]);
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));
       return;
     }
-    process.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
+    process.stderr.write(`${pc.red("error:")} ${e instanceof Error ? e.message : String(e)}\n`);
+    emitNextSteps(NEXT_STEPS.canvasRequired as readonly { command: string; description: string }[]);
     process.exit(1);
   }
 }
