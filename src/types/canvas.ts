@@ -46,6 +46,7 @@ export interface CanvasAssignment {
   allowed_extensions?: string[];
   html_url: string;
   rubric?: Array<{ description: string; points: number }>;
+  submission?: CanvasSubmission | null;
 }
 
 export interface CanvasSubmission {
@@ -141,6 +142,9 @@ export interface UpcomingEvent {
     due_at: string | null;
     name: string;
     submission_types: string[];
+    points_possible: number;
+    html_url: string;
+    submission?: CanvasSubmission | null;
   };
   context_code?: string;
 }

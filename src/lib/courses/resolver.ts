@@ -1,11 +1,16 @@
-import type { Course } from "../../../src/types/course.js";
 import { fuzzyScore } from "./fuzzy-score.js";
 
-export type Resolution =
-  | { kind: "exact"; course: Course; matchedOn: "code" | "alias" }
-  | { kind: "unique-fuzzy"; course: Course; score: number; suggested: boolean }
-  | { kind: "ambiguous"; candidates: Array<{ course: Course; score: number }> }
-  | { kind: "no-match"; closest: Array<{ course: Course; score: number }> };
+export interface ResolvableItem {
+  code: string;
+  name: string;
+  alias: string;
+}
+
+export type Resolution<T extends ResolvableItem = ResolvableItem> =
+  | { kind: "exact"; course: T; matchedOn: "code" | "alias" }
+  | { kind: "unique-fuzzy"; course: T; score: number; suggested: boolean }
+  | { kind: "ambiguous"; candidates: Array<{ course: T; score: number }> }
+  | { kind: "no-match"; closest: Array<{ course: T; score: number }> };
 
 export interface ResolverOptions {
   exact?: boolean;
@@ -29,20 +34,21 @@ function normalizeInput(s: string): string {
   return s.trim().toLowerCase();
 }
 
-export function resolveCourse(
+export function resolveCourse<T extends ResolvableItem>(
   input: string,
-  courses: Course[],
+  courses: T[],
   options: ResolverOptions = {},
-): Resolution {
+): Resolution<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const query = normalizeInput(input);
 
   // 1. Exact match on code or alias
   for (const course of courses) {
+    if (!course.code) continue;
     if (course.code.toLowerCase() === query) {
       return { kind: "exact", course, matchedOn: "code" };
     }
-    if (course.alias.toLowerCase() === query) {
+    if (course.alias && course.alias.toLowerCase() === query) {
       return { kind: "exact", course, matchedOn: "alias" };
     }
   }
@@ -54,9 +60,10 @@ export function resolveCourse(
   // 2. Substring match (≥3 chars)
   if (query.length >= 3) {
     const substringMatches = courses.filter((c) => {
+      if (!c.code) return false;
       const code = c.code.toLowerCase();
-      const name = c.name.toLowerCase();
-      const alias = c.alias.toLowerCase();
+      const name = (c.name ?? "").toLowerCase();
+      const alias = (c.alias ?? "").toLowerCase();
       return code.includes(query) || name.includes(query) || alias.includes(query);
     });
 
@@ -72,10 +79,11 @@ export function resolveCourse(
 
   // 3. Fuzzy scoring
   const scored = courses
+    .filter((c) => !!c.code)
     .map((course) => {
-      const codeScore = fuzzyScore(query, course.code);
-      const nameScore = fuzzyScore(query, course.name);
-      const aliasScore = fuzzyScore(query, course.alias);
+      const codeScore = fuzzyScore(query, course.code ?? "");
+      const nameScore = fuzzyScore(query, course.name ?? "");
+      const aliasScore = fuzzyScore(query, course.alias ?? "");
       const score = Math.max(codeScore, nameScore, aliasScore);
       return { course, score };
     })

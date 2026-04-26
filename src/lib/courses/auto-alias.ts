@@ -72,11 +72,19 @@ export function generateAliasMap(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   const used = new Set<string>();
+  const codeToAlias: Array<{ code: string; name: string; alias: string }> = [];
 
   for (const course of courses) {
-    const alias = generateAutoAlias(course.name, used);
+    if (!course.code) continue;
+    const alias = generateAutoAlias(course.name ?? "", used);
     result[course.code] = alias;
     used.add(alias);
+    codeToAlias.push({ code: course.code, name: course.name ?? "", alias });
+  }
+
+  for (const { code, name, alias } of codeToAlias) {
+    const compositeKey = `${code}::${name.trim()}`;
+    result[compositeKey] = alias;
   }
 
   return result;
