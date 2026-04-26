@@ -17,9 +17,20 @@ import { registerCursosFavoritos } from "./commands/cursos/favoritos.js";
 import { registerCursosInfo } from "./commands/cursos/info.js";
 import { registerCursosList } from "./commands/cursos/list.js";
 
+import { makeNotasCommand } from "./commands/notas/list.js";
+import { makeHorarioCommand } from "./commands/horario/week.js";
+import { makeHorarioHoyCommand } from "./commands/horario/hoy.js";
+import { makeHorarioAhoraCommand } from "./commands/horario/ahora.js";
+import { makeAsistenciaCommand } from "./commands/asistencia.js";
+import { makePlanCommand } from "./commands/plan/list.js";
+import { makeHistorialCommand } from "./commands/historial.js";
+import { makeExamenesCommand } from "./commands/examenes.js";
+import { makeMatriculaCommand } from "./commands/matricula.js";
+import { makePerfilCommand } from "./commands/perfil.js";
+import { makePagosCommand } from "./commands/pagos/list.js";
+import { makeTramiteCommand } from "./commands/tramite/list.js";
+
 import { registerCanvasNamespace } from "./commands/_namespaces/canvas.js";
-import { registerIntranetNamespace } from "./commands/_namespaces/intranet.js";
-import { registerStubs } from "./commands/_stub.js";
 import { registerConfig } from "./commands/config.js";
 import { registerDoctor } from "./commands/doctor.js";
 import { registerSchema } from "./commands/schema.js";
@@ -42,7 +53,7 @@ program
 // Commander eats parent options before passing to child; defining
 // them only on subcommands ensures the subcommand action receives them.
 
-// Default action: panorama (Phase E — stub for now)
+// Default action: panorama (Phase D — stub for now)
 program.action((opts: { json?: boolean }) => {
   const e = new NotImplementedError("wiener (panorama)");
   if (opts.json) emitJson(err(e.code, e.message, e.hint));
@@ -80,8 +91,40 @@ registerAliasWizard(aliasesCmd);
 registerAliasList(aliasesCmd);
 registerAliasReset(aliasesCmd);
 
-// Default cursos action: show help (no action registered)
-// `wiener cursos` with no subcommand will print cursos help.
+// Intranet read commands (Phase B)
+const horarioCmd = makeHorarioCommand();
+horarioCmd.addCommand(makeHorarioHoyCommand());
+horarioCmd.addCommand(makeHorarioAhoraCommand());
+
+program.addCommand(makeNotasCommand());
+program.addCommand(horarioCmd);
+program.addCommand(makeAsistenciaCommand());
+program.addCommand(makePlanCommand());
+program.addCommand(makeHistorialCommand());
+program.addCommand(makeExamenesCommand());
+program.addCommand(makeMatriculaCommand());
+program.addCommand(makePerfilCommand());
+program.addCommand(makePagosCommand());
+program.addCommand(makeTramiteCommand());
+
+// Intranet mirror namespace (Phase B)
+const intranetNs = new Command("intranet").description(
+  "Mirror namespace: intranet-backed commands (same as top-level)",
+);
+intranetNs.addCommand(makeNotasCommand());
+const horarioCopy = makeHorarioCommand();
+horarioCopy.addCommand(makeHorarioHoyCommand());
+horarioCopy.addCommand(makeHorarioAhoraCommand());
+intranetNs.addCommand(horarioCopy);
+intranetNs.addCommand(makeAsistenciaCommand());
+intranetNs.addCommand(makePlanCommand());
+intranetNs.addCommand(makeHistorialCommand());
+intranetNs.addCommand(makeExamenesCommand());
+intranetNs.addCommand(makeMatriculaCommand());
+intranetNs.addCommand(makePerfilCommand());
+intranetNs.addCommand(makePagosCommand());
+intranetNs.addCommand(makeTramiteCommand());
+program.addCommand(intranetNs);
 
 // Doctor
 registerDoctor(program);
@@ -92,11 +135,7 @@ registerSchema(program);
 // Config
 registerConfig(program);
 
-// Stub all unimplemented commands (phases B/C/D/E)
-registerStubs(program);
-
-// Namespace mirrors
-registerIntranetNamespace(program);
+// Canvas namespace (Phase C will replace with real commands)
 registerCanvasNamespace(program);
 
 program.parseAsync(process.argv).catch((e: Error) => {

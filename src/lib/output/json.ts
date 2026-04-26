@@ -18,3 +18,11 @@ export function emitJson(envelope: Envelope, fields?: string[]): never {
     process.exit(1);
   }
 }
+
+export function emit(envelope: Envelope): void {
+  process.stdout.write(JSON.stringify(envelope) + "\n");
+}
+
+export function emitError(envelope: Envelope): void {
+  process.stderr.write(JSON.stringify(envelope) + "\n");
+}
