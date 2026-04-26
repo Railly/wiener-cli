@@ -5,6 +5,7 @@ import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printHeader, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
 import { checkRateGuard, markRateGuardUsed } from "../../lib/safety/rate-guard.ts";
+import { AUTH_NEXT_STEPS, emitNextSteps } from "../../lib/agent/next-steps.ts";
 import {
   fetchTramitePreview,
   fetchTramiteTipos,
@@ -59,6 +60,7 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       printJson(err);
     } else {
       printError(err.error.message);
+      emitNextSteps([AUTH_NEXT_STEPS.intranet], { json: opts.json });
     }
     process.exit(1);
   }
