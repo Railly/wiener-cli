@@ -36,11 +36,23 @@ export function printKeyValue(pairs: Record<string, unknown>): void {
   }
 }
 
-export function printError(code: string, message: string, hint?: string): void {
-  console.error(pc.red(`error [${code}]: ${message}`));
-  if (hint) {
-    console.error(pc.dim(`  hint: ${hint}`));
+export function printError(codeOrMessage: string, message?: string, hint?: string): void {
+  if (message === undefined) {
+    console.error(pc.red(codeOrMessage));
+  } else {
+    console.error(pc.red(`error [${codeOrMessage}]: ${message}`));
+    if (hint) {
+      console.error(pc.dim(`  hint: ${hint}`));
+    }
   }
+}
+
+export function printLine(text: string): void {
+  console.log(text);
+}
+
+export function printHeader(title: string): void {
+  if (title) console.log(pc.bold(title));
 }
 
 export function printSuccess(message: string): void {

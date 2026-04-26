@@ -26,3 +26,5 @@ export function emit(envelope: Envelope): void {
 export function emitError(envelope: Envelope): void {
   process.stderr.write(`${JSON.stringify(envelope)}\n`);
 }
+
+export const printJson = emit;

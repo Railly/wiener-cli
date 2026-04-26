@@ -45,3 +45,6 @@ export function err(
     },
   };
 }
+
+export const successEnvelope = ok;
+export const errorEnvelope = err;

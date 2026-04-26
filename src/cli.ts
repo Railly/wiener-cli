@@ -17,6 +17,8 @@ import { registerCursosFavoritos } from "./commands/cursos/favoritos.js";
 import { registerCursosInfo } from "./commands/cursos/info.js";
 import { registerCursosList } from "./commands/cursos/list.js";
 
+import { runArchivosDownload } from "./commands/archivos/download.js";
+import { runArchivosSync } from "./commands/archivos/sync.js";
 import { makeAsistenciaCommand } from "./commands/asistencia.js";
 import { makeExamenesCommand } from "./commands/examenes.js";
 import { makeHistorialCommand } from "./commands/historial.js";
@@ -29,6 +31,7 @@ import { makeNotasCommand } from "./commands/notas/list.js";
 import { makePagosCommand } from "./commands/pagos/list.js";
 import { makePerfilCommand } from "./commands/perfil.js";
 import { makePlanCommand } from "./commands/plan/list.js";
+import { runTramiteGenerar } from "./commands/tramite/generar.js";
 import { makeTramiteCommand } from "./commands/tramite/list.js";
 
 import { runAnunciosByCourse } from "./commands/anuncios/by-course.js";
@@ -130,7 +133,28 @@ program.addCommand(makeExamenesCommand());
 program.addCommand(makeMatriculaCommand());
 program.addCommand(makePerfilCommand());
 program.addCommand(makePagosCommand());
-program.addCommand(makeTramiteCommand());
+const tramiteCmd = makeTramiteCommand();
+tramiteCmd.addCommand(
+  new Command("generar")
+    .description("Generar orden de pago (T2 — muestra preview y pide confirmación)")
+    .requiredOption("--tipo <code>", "Código del tipo de trámite")
+    .option("--yes", "Skip confirmation prompt")
+    .option("--dry-run", "Preview only, no network write")
+    .option("--no-input", "Force non-interactive mode")
+    .option("--json", "Output as JSON envelope")
+    .option("--profile <name>", "Profile name", "default")
+    .action(async (opts) => {
+      await runTramiteGenerar({
+        tipo: opts.tipo as string,
+        yes: Boolean(opts.yes),
+        dryRun: Boolean(opts.dryRun),
+        noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+        json: Boolean(opts.json),
+        profile: (opts.profile as string) ?? "default",
+      });
+    }),
+);
+program.addCommand(tramiteCmd);
 
 // ─── Canvas read commands (Phase C) ──────────────────────────────────────────
 
@@ -288,6 +312,57 @@ addGlobalFlags(archivos.command("arbol <ref>").description("Árbol de carpetas y
     const g = parseGlobalFlags(merged);
     await runArchivosArbol(String(ref), g);
   },
+);
+
+// Phase E: download + sync
+archivos.addCommand(
+  new Command("download")
+    .description("Descargar un archivo Canvas por ID (T2 para archivos >50 MB)")
+    .argument("<file-id>", "Canvas file ID")
+    .option("--out <path>", "Ruta de destino")
+    .option("--force", "Sobreescribir si existe")
+    .option("--yes", "Skip confirmation")
+    .option("--dry-run", "Preview only")
+    .option("--no-input", "Force non-interactive")
+    .option("--json", "JSON envelope output")
+    .option("--profile <name>", "Profile name", "default")
+    .action(async (fileId, opts) => {
+      await runArchivosDownload({
+        fileId: String(fileId),
+        out: opts.out as string | undefined,
+        yes: Boolean(opts.yes),
+        dryRun: Boolean(opts.dryRun),
+        force: Boolean(opts.force),
+        noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+        json: Boolean(opts.json),
+        profile: (opts.profile as string) ?? "default",
+      });
+    }),
+);
+
+archivos.addCommand(
+  new Command("sync")
+    .description("Sync todos los archivos de un curso a directorio local (T2)")
+    .argument("<course-id>", "Canvas course ID o ref")
+    .option("--dir <path>", "Directorio destino (default: ./<course-id>)")
+    .option("--max-size <mb>", "Límite máximo en MB (default: 500)", "500")
+    .option("--yes", "Skip confirmation")
+    .option("--dry-run", "Preview only")
+    .option("--no-input", "Force non-interactive")
+    .option("--json", "JSON envelope output")
+    .option("--profile <name>", "Profile name", "default")
+    .action(async (courseId, opts) => {
+      await runArchivosSync({
+        courseId: String(courseId),
+        dir: opts.dir as string | undefined,
+        yes: Boolean(opts.yes),
+        dryRun: Boolean(opts.dryRun),
+        noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+        json: Boolean(opts.json),
+        maxSizeMb: opts.maxSize ? Number(opts.maxSize) : undefined,
+        profile: (opts.profile as string) ?? "default",
+      });
+    }),
 );
 
 program.addCommand(archivos);

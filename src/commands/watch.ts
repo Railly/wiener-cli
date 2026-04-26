@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { startWatch, stopWatch } from "../lib/workflows/watch-loop.js";
+import { confirmWatchDetach } from "./watch-detach-confirm.js";
 
 export function registerWatch(program: Command): void {
   const watchCmd = program
@@ -9,6 +10,8 @@ export function registerWatch(program: Command): void {
     .option("--interval <ms>", "intervalo en ms", (v) => Number(v))
     .option("--whatsapp", "notif via WhatsApp en vez de macOS")
     .option("--dry-run", "ejecutar una vez y salir sin guardar estado")
+    .option("--yes", "skip confirmation for --detach")
+    .option("--no-input", "force non-interactive mode")
     .option("--profile <name>", "profile name", "default")
     .action(
       async (opts: {
@@ -16,9 +19,19 @@ export function registerWatch(program: Command): void {
         interval?: number;
         whatsapp?: boolean;
         dryRun?: boolean;
+        noInput?: boolean;
+        yes?: boolean;
         profile?: string;
       }) => {
         try {
+          if (opts.detach) {
+            const decision = await confirmWatchDetach({
+              yes: Boolean(opts.yes),
+              dryRun: Boolean(opts.dryRun),
+              noInput: Boolean(opts.noInput) || !process.stdin.isTTY,
+            });
+            if (decision !== "proceed") return;
+          }
           await startWatch({
             interval: opts.interval,
             notify: opts.whatsapp ? "whatsapp" : "macos",

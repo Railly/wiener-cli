@@ -19,6 +19,17 @@ export interface AuthenticateResponse {
   mensaje?: string;
 }
 
+export interface TramiteItem {
+  id: string;
+  tipo: string;
+  estado: string;
+  fecha_inicio: string | null;
+}
+
+export interface TramiteData {
+  tramites: TramiteItem[];
+}
+
 export type DiaCode = "L" | "M" | "X" | "J" | "V" | "S" | "D";
 
 export interface HorarioData {
