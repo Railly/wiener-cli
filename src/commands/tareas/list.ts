@@ -10,8 +10,10 @@ import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { projectFields } from "../../lib/output/fields.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { pMap } from "../../lib/parallel.js";
 import type { CanvasCourse } from "../../types/canvas.js";
 import type { Course } from "../../types/course.js";
@@ -138,31 +140,65 @@ export async function runTareasList(opts: {
       return;
     }
 
-    const rows = tareas.map((t) => ({
-      id: String(t.id),
-      curso: `${t.curso.code} [${t.curso.seccion}]`,
-      nombre: t.name,
-      vencimiento: formatDate(t.due_at),
-      puntos: String(t.points),
-      estado: t.graded
-        ? pc.green("calificado")
-        : t.submitted
-          ? pc.yellow("entregado")
-          : pc.red("pendiente"),
-      nota: t.grade ?? pc.dim("—"),
-    }));
-
     console.log(
       renderSection(
         "Tareas pendientes",
-        renderTable(rows, [
-          { header: "ID", key: "id" },
-          { header: "Curso", key: "curso" },
-          { header: "Nombre", key: "nombre", maxWidth: 40 },
-          { header: "Vencimiento", key: "vencimiento" },
-          { header: "Pts", key: "puntos" },
-          { header: "Estado", key: "estado" },
-          { header: "Nota", key: "nota" },
+        renderTable(tareas, [
+          {
+            header: "Curso",
+            get: (t) => `${t.curso.code} [${t.curso.seccion}]`,
+            fixed: 12,
+            color: (v) => pc.yellow(pc.bold(v)),
+            show: "always",
+            priority: 10,
+          },
+          {
+            header: "Tarea",
+            get: (t) => t.name,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Vence",
+            get: (t) => formatDueDate(t.due_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Pts",
+            get: (t) => (t.points > 0 ? String(t.points) : "—"),
+            fixed: 4,
+            align: "right",
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "Estado",
+            get: (t) =>
+              t.graded ? "calificado" : t.submitted ? "entregado" : "pendiente",
+            fixed: 11,
+            color: (v) =>
+              v === "calificado"
+                ? pc.green(v)
+                : v === "entregado"
+                  ? pc.cyan(v)
+                  : v === "pendiente"
+                    ? pc.yellow(v)
+                    : pc.red(pc.bold(v)),
+            show: "always",
+            priority: 7,
+          },
+          {
+            header: "Nota",
+            get: (t) => t.grade ?? "—",
+            fixed: 5,
+            show: "wide",
+            priority: 4,
+          },
         ]),
       ),
     );
@@ -294,31 +330,65 @@ export async function runTareasByCourse(
       return;
     }
 
-    const rows = tareas.map((t) => ({
-      id: String(t.id),
-      seccion: t.curso.seccion,
-      nombre: t.name,
-      vencimiento: formatDate(t.due_at),
-      puntos: String(t.points),
-      estado: t.graded
-        ? pc.green("calificado")
-        : t.submitted
-          ? pc.yellow("entregado")
-          : pc.red("pendiente"),
-      nota: t.grade ?? pc.dim("—"),
-    }));
-
     console.log(
       renderSection(
         `Tareas — ${resolvedCourse.code} (${resolvedCourse.name})`,
-        renderTable(rows, [
-          { header: "ID", key: "id" },
-          { header: "Secc.", key: "seccion" },
-          { header: "Nombre", key: "nombre", maxWidth: 45 },
-          { header: "Vencimiento", key: "vencimiento" },
-          { header: "Pts", key: "puntos" },
-          { header: "Estado", key: "estado" },
-          { header: "Nota", key: "nota" },
+        renderTable(tareas, [
+          {
+            header: "Secc.",
+            get: (t) => t.curso.seccion,
+            fixed: 6,
+            color: (v) => pc.yellow(pc.bold(v)),
+            show: "always",
+            priority: 10,
+          },
+          {
+            header: "Tarea",
+            get: (t) => t.name,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Vence",
+            get: (t) => formatDueDate(t.due_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Pts",
+            get: (t) => (t.points > 0 ? String(t.points) : "—"),
+            fixed: 4,
+            align: "right",
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "Estado",
+            get: (t) =>
+              t.graded ? "calificado" : t.submitted ? "entregado" : "pendiente",
+            fixed: 11,
+            color: (v) =>
+              v === "calificado"
+                ? pc.green(v)
+                : v === "entregado"
+                  ? pc.cyan(v)
+                  : v === "pendiente"
+                    ? pc.yellow(v)
+                    : pc.red(pc.bold(v)),
+            show: "always",
+            priority: 7,
+          },
+          {
+            header: "Nota",
+            get: (t) => t.grade ?? "—",
+            fixed: 5,
+            show: "wide",
+            priority: 4,
+          },
         ]),
       ),
     );

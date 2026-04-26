@@ -4,7 +4,9 @@ import pc from "picocolors";
 import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { isPast, isToday } from "../../lib/time.js";
 
@@ -42,40 +44,68 @@ export async function runTareasHoy(opts: { json?: boolean; fields?: string }): P
     }
 
     if (atrasadas.length > 0) {
-      const rows = atrasadas.map((t) => ({
-        id: String(t.id),
-        nombre: t.name,
-        vencio: formatDate(t.due_at),
-        estado: t.submitted ? pc.yellow("entregado tarde") : pc.red("ATRASADA"),
-      }));
       console.log(
         renderSection(
           "Atrasadas",
-          renderTable(rows, [
-            { header: "ID", key: "id" },
-            { header: "Nombre", key: "nombre", maxWidth: 45 },
-            { header: "Venció", key: "vencio" },
-            { header: "Estado", key: "estado" },
+          renderTable(atrasadas, [
+            {
+              header: "Tarea",
+              get: (t) => t.name,
+              weight: 3,
+              min: 20,
+              show: "always",
+              priority: 9,
+            },
+            {
+              header: "Venció",
+              get: (t) => formatDueDate(t.due_at),
+              weight: 1,
+              min: 14,
+              show: "always",
+              priority: 8,
+            },
+            {
+              header: "Estado",
+              get: (t) => (t.submitted ? "entregado tarde" : "ATRASADA"),
+              fixed: 14,
+              color: (v) => (v === "entregado tarde" ? pc.yellow(v) : pc.red(pc.bold(v))),
+              show: "always",
+              priority: 7,
+            },
           ]),
         ),
       );
     }
 
     if (hoy.length > 0) {
-      const rows = hoy.map((t) => ({
-        id: String(t.id),
-        nombre: t.name,
-        vencimiento: formatDate(t.due_at),
-        estado: t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
-      }));
       console.log(
         renderSection(
           "Hoy",
-          renderTable(rows, [
-            { header: "ID", key: "id" },
-            { header: "Nombre", key: "nombre", maxWidth: 45 },
-            { header: "Vencimiento", key: "vencimiento" },
-            { header: "Estado", key: "estado" },
+          renderTable(hoy, [
+            {
+              header: "Tarea",
+              get: (t) => t.name,
+              weight: 3,
+              min: 20,
+              show: "always",
+              priority: 9,
+            },
+            {
+              header: "Vence",
+              get: (t) => formatDueDate(t.due_at),
+              weight: 1,
+              min: 14,
+              show: "always",
+              priority: 8,
+            },
+            {
+              header: "Estado",
+              get: (t) => (t.submitted ? "entregado" : "pendiente"),
+              fixed: 11,
+              color: (v) => (v === "entregado" ? pc.cyan(v) : pc.yellow(v)),
+              show: "always",
+              priority: 7,
+            },
           ]),
         ),
       );

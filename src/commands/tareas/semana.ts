@@ -4,7 +4,9 @@ import pc from "picocolors";
 import { fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { isWithinDays } from "../../lib/time.js";
 
@@ -39,23 +41,42 @@ export async function runTareasSemana(opts: { json?: boolean; dias?: number }): 
       return;
     }
 
-    const rows = tareas.map((t) => ({
-      id: String(t.id),
-      nombre: t.name,
-      vencimiento: formatDate(t.due_at),
-      puntos: String(t.points),
-      estado: t.submitted ? pc.yellow("entregado") : pc.red("pendiente"),
-    }));
-
     console.log(
       renderSection(
         `Tareas — próximos ${dias} días`,
-        renderTable(rows, [
-          { header: "ID", key: "id" },
-          { header: "Nombre", key: "nombre", maxWidth: 50 },
-          { header: "Vencimiento", key: "vencimiento" },
-          { header: "Pts", key: "puntos" },
-          { header: "Estado", key: "estado" },
+        renderTable(tareas, [
+          {
+            header: "Tarea",
+            get: (t) => t.name,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Vence",
+            get: (t) => formatDueDate(t.due_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Pts",
+            get: (t) => (t.points > 0 ? String(t.points) : "—"),
+            fixed: 4,
+            align: "right",
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "Estado",
+            get: (t) => (t.submitted ? "entregado" : "pendiente"),
+            fixed: 11,
+            color: (v) => (v === "entregado" ? pc.cyan(v) : pc.yellow(v)),
+            show: "always",
+            priority: 7,
+          },
         ]),
       ),
     );
