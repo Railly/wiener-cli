@@ -26,10 +26,11 @@ export interface CurrentData {
   courses: LogicalCourse[];
 }
 
-function courseCodeForId(courseId: number, courses: LogicalCourse[]): string {
+function courseCodeForId(courseId: number | string, courses: LogicalCourse[]): string {
+  const id = String(courseId);
   for (const c of courses) {
     for (const s of c.secciones) {
-      if (s.id === courseId) return c.code;
+      if (String(s.id) === id) return c.code;
     }
   }
   return String(courseId);

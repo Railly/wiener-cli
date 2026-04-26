@@ -4,6 +4,9 @@ import { getActiveCourses } from "../api/canvas/courses.js";
 import { listAllFiles } from "../api/canvas/files.js";
 import { getModulesWithItems } from "../api/canvas/modules.js";
 import { getMySubmissions } from "../api/canvas/submissions.js";
+import { getProfileAliases } from "../courses/alias-store.js";
+import { generateAliasMapByCodeName } from "../courses/auto-alias.js";
+import { groupBySection } from "../courses/grouping.js";
 import {
   type CurrentData,
   type DeltaItem,
@@ -29,8 +32,15 @@ export async function runNuevo(opts: NuevoOpts = {}): Promise<NuevoResult> {
   const desde = prevState?.last_run_at ?? null;
   const before = prevState?.snapshots ?? EMPTY_SNAPSHOTS;
 
-  const courses = await getActiveCourses();
-  const allCourseIds = courses.flatMap((c) => c.secciones.map((s) => s.id));
+  const rawCourses = await getActiveCourses(profile);
+  const customAliases = getProfileAliases(profile);
+  const autoAliases = generateAliasMapByCodeName(
+    rawCourses.map((c) => ({ code: c.course_code, name: c.name })),
+  );
+  const aliasMap = { ...autoAliases, ...customAliases };
+  const courses = groupBySection(rawCourses, aliasMap);
+
+  const allCourseIds = courses.flatMap((c) => c.secciones.map((s) => Number(s.id)));
 
   const [anuncios, submissions, ...perCourse] = await Promise.all([
     getAnnouncements(allCourseIds),
