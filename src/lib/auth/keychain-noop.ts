@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
-import { atomicWrite } from "../foundation/atomic-write.js";
 import { getProfileDir } from "../env.js";
+import { atomicWrite } from "../foundation/atomic-write.js";
 
 function sessionPath(type: "intranet" | "canvas", profile: string): string {
   return path.join(getProfileDir(profile), `${type}-session.json`);

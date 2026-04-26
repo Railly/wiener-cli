@@ -26,10 +26,7 @@ function spawnDetached(cmd: string, args: string[]): void {
   child.unref();
 }
 
-export async function openUrl(
-  url: string,
-  options: OpenUrlOptions = {},
-): Promise<OpenUrlResult> {
+export async function openUrl(url: string, options: OpenUrlOptions = {}): Promise<OpenUrlResult> {
   const { dryRun = false, manualOnly = false } = options;
 
   if (manualOnly || isCi() || isHeadlessLinux()) {
@@ -47,7 +44,8 @@ export async function openUrl(
 
   const browserEnv = process.env.BROWSER;
   if (browserEnv && browserEnv !== "none") {
-    if (dryRun) return { url, opened: true, via: "browser-env", reason: `would run: ${browserEnv} ${url}` };
+    if (dryRun)
+      return { url, opened: true, via: "browser-env", reason: `would run: ${browserEnv} ${url}` };
     try {
       spawnDetached(browserEnv, [url]);
       return { url, opened: true, via: "browser-env" };
@@ -64,35 +62,66 @@ export async function openUrl(
       spawnDetached("open", [url]);
       return { url, opened: true, via: "darwin" };
     } catch (err) {
-      return { url, opened: false, via: "manual", reason: `open failed: ${(err as Error).message}` };
+      return {
+        url,
+        opened: false,
+        via: "manual",
+        reason: `open failed: ${(err as Error).message}`,
+      };
     }
   }
 
   if (os === "win32") {
-    if (dryRun) return { url, opened: true, via: "windows", reason: "would run: powershell Start-Process" };
+    if (dryRun)
+      return { url, opened: true, via: "windows", reason: "would run: powershell Start-Process" };
     try {
       spawnDetached("powershell.exe", ["-NoProfile", "-Command", `Start-Process "${url}"`]);
       return { url, opened: true, via: "windows" };
     } catch (err) {
-      return { url, opened: false, via: "manual", reason: `powershell failed: ${(err as Error).message}` };
+      return {
+        url,
+        opened: false,
+        via: "manual",
+        reason: `powershell failed: ${(err as Error).message}`,
+      };
     }
   }
 
   if (os === "linux" && isWsl()) {
     if (hasCommand("wslview")) {
       if (dryRun) return { url, opened: true, via: "wsl", reason: "would run: wslview" };
-      try { spawnDetached("wslview", [url]); return { url, opened: true, via: "wsl" }; } catch { /* fall through */ }
+      try {
+        spawnDetached("wslview", [url]);
+        return { url, opened: true, via: "wsl" };
+      } catch {
+        /* fall through */
+      }
     }
     if (hasCommand("cmd.exe")) {
       if (dryRun) return { url, opened: true, via: "wsl", reason: "would run: cmd.exe /c start" };
-      try { spawnDetached("cmd.exe", ["/c", "start", "", url]); return { url, opened: true, via: "wsl" }; } catch (err) {
-        return { url, opened: false, via: "manual", reason: `wsl cmd.exe failed: ${(err as Error).message}` };
+      try {
+        spawnDetached("cmd.exe", ["/c", "start", "", url]);
+        return { url, opened: true, via: "wsl" };
+      } catch (err) {
+        return {
+          url,
+          opened: false,
+          via: "manual",
+          reason: `wsl cmd.exe failed: ${(err as Error).message}`,
+        };
       }
     }
     return { url, opened: false, via: "manual", reason: "WSL without wslview or cmd.exe" };
   }
 
-  const candidates = ["xdg-open", "gio", "sensible-browser", "firefox", "google-chrome", "chromium"];
+  const candidates = [
+    "xdg-open",
+    "gio",
+    "sensible-browser",
+    "firefox",
+    "google-chrome",
+    "chromium",
+  ];
   for (const cmd of candidates) {
     if (hasCommand(cmd)) {
       if (dryRun) return { url, opened: true, via: "linux", reason: `would run: ${cmd} ${url}` };
@@ -100,7 +129,9 @@ export async function openUrl(
         const args = cmd === "gio" ? ["open", url] : [url];
         spawnDetached(cmd, args);
         return { url, opened: true, via: "linux" };
-      } catch { /* try next */ }
+      } catch {
+        /* try next */
+      }
     }
   }
 

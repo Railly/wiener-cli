@@ -11,8 +11,8 @@ import {
   unlinkSync,
   writeSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
 import { platform } from "node:os";
+import { dirname, join } from "node:path";
 
 export type WriteOptions = {
   mode?: number;

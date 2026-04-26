@@ -1,5 +1,5 @@
-import { getWienerPaths } from "../foundation/xdg-paths.js";
 import { audit } from "../foundation/audit-log.js";
+import { getWienerPaths } from "../foundation/xdg-paths.js";
 
 export type TrustLevel = "T0" | "T2";
 

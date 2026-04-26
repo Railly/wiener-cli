@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { atomicWriteJson } from "../foundation/atomic-write.js";
 import type { AliasStore } from "../../types/course.js";
 import { getConfigDir } from "../env.js";
+import { atomicWriteJson } from "../foundation/atomic-write.js";
 
 function aliasFilePath(): string {
   return path.join(getConfigDir(), "aliases.json");

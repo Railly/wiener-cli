@@ -46,7 +46,8 @@ export async function notifyOs(
 
   if (os === "win32" || isWsl()) {
     const psCmd = `powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.Visible = $true; $n.ShowBalloonTip(5000, '${title.replace(/'/g, "''")}', '${message.replace(/'/g, "''")}', 'Info')"`;
-    if (dryRun) return { sent: true, via: "powershell", reason: "would run: PowerShell notification" };
+    if (dryRun)
+      return { sent: true, via: "powershell", reason: "would run: PowerShell notification" };
     try {
       execSync(psCmd, { stdio: "ignore", timeout: 10000 });
       return { sent: true, via: "powershell" };

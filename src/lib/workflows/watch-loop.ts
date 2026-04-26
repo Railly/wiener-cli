@@ -9,9 +9,8 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../env.js";
-import { notifyMacos } from "../notify/macos.js";
-import { notifyOs } from "../platform/notify-os.js";
 import { notifyWhatsApp } from "../notify/whatsapp.js";
+import { notifyOs } from "../platform/notify-os.js";
 import type { DeltaItem } from "../state/diff.js";
 import { runNuevo } from "./nuevo-diff.js";
 

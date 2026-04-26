@@ -1,7 +1,7 @@
 // cligentic block: audit-log (adapted for wiener-cli)
 // Append-only JSONL audit trail with daily file rotation.
 
-import { appendFileSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 export type AuditRecord = {

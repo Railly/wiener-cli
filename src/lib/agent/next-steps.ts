@@ -22,9 +22,7 @@ export function emitNextSteps(steps: NextStep[], opts: { json?: boolean } = {}):
 
   if (isJson) {
     for (const step of steps) {
-      process.stderr.write(
-        `${JSON.stringify({ type: "next-step", ...step })}\n`,
-      );
+      process.stderr.write(`${JSON.stringify({ type: "next-step", ...step })}\n`);
     }
     return;
   }
@@ -47,5 +45,8 @@ export function emitNextSteps(steps: NextStep[], opts: { json?: boolean } = {}):
 export const AUTH_NEXT_STEPS = {
   intranet: { command: "wiener auth login", description: "authenticate with intranet" },
   canvas: { command: "wiener auth canvas set-token <pat>", description: "configure Canvas PAT" },
-  canvasPat: { command: "wiener auth canvas pat new", description: "generate a new PAT via browser" },
+  canvasPat: {
+    command: "wiener auth canvas pat new",
+    description: "generate a new PAT via browser",
+  },
 } as const;

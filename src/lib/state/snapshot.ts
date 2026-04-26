@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { atomicWriteJson } from "../foundation/atomic-write.js";
 import type { StateSnapshots, WienerState } from "../../types/state.js";
+import { atomicWriteJson } from "../foundation/atomic-write.js";
 
 export const EMPTY_SNAPSHOTS: StateSnapshots = {
   anuncios: { by_course: {} },

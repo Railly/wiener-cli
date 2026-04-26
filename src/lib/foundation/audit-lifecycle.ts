@@ -1,8 +1,8 @@
 // cligentic block: audit-lifecycle (adapted for wiener-cli)
 // Two-phase append-only audit records for operations that must survive retries.
 
-import { appendFileSync, mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 export type AuditLifecycleResult = "pending" | "ok" | "error" | "blocked" | "dry-run";
