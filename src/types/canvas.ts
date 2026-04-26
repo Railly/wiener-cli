@@ -38,12 +38,18 @@ export interface CanvasAssignment {
   name: string;
   description?: string;
   due_at: string | null;
+  lock_at?: string | null;
+  unlock_at?: string | null;
   points_possible: number;
   submission_types: string[];
+  allowed_attempts?: number;
+  allowed_extensions?: string[];
   html_url: string;
+  rubric?: Array<{ description: string; points: number }>;
 }
 
 export interface CanvasSubmission {
+  id?: number;
   assignment_id: number;
   assignment?: CanvasAssignment;
   course_id: number;
@@ -52,7 +58,40 @@ export interface CanvasSubmission {
   submitted_at: string | null;
   graded_at: string | null;
   workflow_state: string;
+  attempt?: number | null;
+  late?: boolean;
+  missing?: boolean;
+  late_policy_status?: string | null;
   html_url?: string;
+  submission_comments?: Array<{ author_name: string; comment: string; created_at: string }>;
+}
+
+export interface CanvasUploadParams {
+  upload_url: string;
+  upload_params: Record<string, string>;
+}
+
+export interface CanvasUploadedFile {
+  id: number;
+  display_name: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  url: string;
+}
+
+export interface CanvasSubmissionResponse {
+  id: number;
+  assignment_id: number;
+  user_id: number | string;
+  submitted_at: string | null;
+  workflow_state: string;
+  attempt: number | null;
+  late: boolean;
+  missing: boolean;
+  score: number | null;
+  grade: string | null;
+  attachments?: CanvasUploadedFile[];
 }
 
 export interface CanvasAnnouncement {
