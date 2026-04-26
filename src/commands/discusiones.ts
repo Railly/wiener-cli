@@ -7,7 +7,9 @@ import { groupBySection } from "../lib/courses/grouping.js";
 import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
 import { err, ok } from "../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable, truncateHtml } from "../lib/output/human.js";
+import { renderSection, truncateHtml } from "../lib/output/human.js";
+import { renderTable } from "../lib/output/responsive-table.js";
+import { formatDueDate } from "../lib/format/date.js";
 import { emit } from "../lib/output/json.js";
 import { pMap } from "../lib/parallel.js";
 import type { CanvasCourse } from "../types/canvas.js";
@@ -101,25 +103,58 @@ export async function runDiscusiones(
       return;
     }
 
-    const rows = discusiones.map((d) => ({
-      secc: d.seccion,
-      titulo: d.title,
-      autor: d.author,
-      fecha: formatDate(d.posted_at),
-      respuestas: String(d.reply_count),
-      no_leidas: d.unread_count > 0 ? pc.yellow(String(d.unread_count)) : pc.dim("0"),
-    }));
-
     console.log(
       renderSection(
         `Discusiones — ${resolvedCourse.code}`,
-        renderTable(rows, [
-          { header: "Secc.", key: "secc" },
-          { header: "Título", key: "titulo", maxWidth: 40 },
-          { header: "Autor", key: "autor", maxWidth: 25 },
-          { header: "Fecha", key: "fecha" },
-          { header: "Resp.", key: "respuestas" },
-          { header: "No leídas", key: "no_leidas" },
+        renderTable(discusiones, [
+          {
+            header: "Secc.",
+            get: (d) => d.seccion,
+            fixed: 6,
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Título",
+            get: (d) => d.title,
+            weight: 2,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Autor",
+            get: (d) => d.author,
+            weight: 1,
+            min: 12,
+            max: 25,
+            show: "wide",
+            priority: 5,
+          },
+          {
+            header: "Fecha",
+            get: (d) => formatDueDate(d.posted_at),
+            weight: 1,
+            min: 14,
+            show: "wide",
+            priority: 6,
+          },
+          {
+            header: "Resp.",
+            get: (d) => String(d.reply_count),
+            fixed: 6,
+            align: "right",
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "No leídas",
+            get: (d) => String(d.unread_count),
+            fixed: 9,
+            color: (v) => (Number(v) > 0 ? pc.yellow(v) : pc.dim(v)),
+            show: "wide",
+            priority: 7,
+          },
         ]),
       ),
     );

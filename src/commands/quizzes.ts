@@ -7,7 +7,9 @@ import { groupBySection } from "../lib/courses/grouping.js";
 import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
 import { err, ok } from "../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../lib/output/human.js";
+import { renderSection } from "../lib/output/human.js";
+import { renderTable } from "../lib/output/responsive-table.js";
+import { formatDueDate } from "../lib/format/date.js";
 import { emit } from "../lib/output/json.js";
 import { pMap } from "../lib/parallel.js";
 import type { CanvasCourse } from "../types/canvas.js";
@@ -100,27 +102,64 @@ export async function runQuizzes(
       return;
     }
 
-    const rows = quizzes.map((q) => ({
-      secc: q.seccion,
-      titulo: q.title,
-      vencimiento: formatDate(q.due_at),
-      tiempo: q.time_limit ? `${q.time_limit} min` : pc.dim("—"),
-      intentos: q.allowed_attempts === -1 ? "∞" : String(q.allowed_attempts),
-      puntos: q.points_possible !== null ? String(q.points_possible) : pc.dim("—"),
-      estado: q.status === "published" ? pc.green("publicado") : pc.dim(q.status),
-    }));
-
     console.log(
       renderSection(
         `Quizzes — ${resolvedCourse.code}`,
-        renderTable(rows, [
-          { header: "Secc.", key: "secc" },
-          { header: "Título", key: "titulo", maxWidth: 40 },
-          { header: "Vencimiento", key: "vencimiento" },
-          { header: "Tiempo", key: "tiempo" },
-          { header: "Intentos", key: "intentos" },
-          { header: "Pts", key: "puntos" },
-          { header: "Estado", key: "estado" },
+        renderTable(quizzes, [
+          {
+            header: "Secc.",
+            get: (q) => q.seccion,
+            fixed: 6,
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Título",
+            get: (q) => q.title,
+            weight: 2,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Vence",
+            get: (q) => formatDueDate(q.due_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Tiempo",
+            get: (q) => (q.time_limit ? `${q.time_limit} min` : "—"),
+            fixed: 8,
+            show: "wide",
+            priority: 5,
+          },
+          {
+            header: "Intentos",
+            get: (q) => (q.allowed_attempts === -1 ? "∞" : String(q.allowed_attempts)),
+            fixed: 8,
+            align: "right",
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "Pts",
+            get: (q) => (q.points_possible !== null ? String(q.points_possible) : "—"),
+            fixed: 4,
+            align: "right",
+            show: "wide",
+            priority: 6,
+          },
+          {
+            header: "Estado",
+            get: (q) => q.status,
+            fixed: 10,
+            color: (v) => (v === "published" ? pc.green("publicado") : pc.dim(v)),
+            show: "always",
+            priority: 7,
+          },
         ]),
       ),
     );

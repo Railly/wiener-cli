@@ -7,7 +7,9 @@ import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { formatBytes, formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { formatBytes, renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
 import { pMap } from "../../lib/parallel.js";
@@ -107,25 +109,48 @@ export async function runArchivos(
       return;
     }
 
-    const rows = archivos.map((f) => ({
-      id: String(f.id),
-      secc: f.seccion,
-      nombre: f.name,
-      tamano: f.size_human,
-      modificado: formatDate(f.modified_at),
-      tipo: f.content_type.split("/")[1] ?? f.content_type,
-    }));
-
     console.log(
       renderSection(
         `Archivos — ${resolvedCourse.code}`,
-        renderTable(rows, [
-          { header: "ID", key: "id" },
-          { header: "Secc.", key: "secc" },
-          { header: "Nombre", key: "nombre", maxWidth: 50 },
-          { header: "Tamaño", key: "tamano" },
-          { header: "Modificado", key: "modificado" },
-          { header: "Tipo", key: "tipo", maxWidth: 20 },
+        renderTable(archivos, [
+          {
+            header: "Secc.",
+            get: (f) => f.seccion,
+            fixed: 6,
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Nombre",
+            get: (f) => f.name,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Tamaño",
+            get: (f) => f.size_human,
+            fixed: 8,
+            align: "right",
+            show: "wide",
+            priority: 5,
+          },
+          {
+            header: "Modificado",
+            get: (f) => formatDueDate(f.modified_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Tipo",
+            get: (f) => f.content_type.split("/")[1] ?? f.content_type,
+            fixed: 10,
+            show: "wide",
+            priority: 3,
+          },
         ]),
       ),
     );

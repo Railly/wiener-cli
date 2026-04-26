@@ -5,7 +5,9 @@ import { fetchCalendarEvents, fetchUpcomingEvents } from "../../lib/api/canvas/c
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { isoDateLima, weekFromNowLima } from "../../lib/time.js";
 
@@ -79,21 +81,41 @@ export async function runCalendario(opts: {
       return;
     }
 
-    const rows = sorted.map((e) => ({
-      fecha: formatDate(e.fecha),
-      tipo: e.tipo === "tarea" ? pc.red("TAREA") : pc.cyan("evento"),
-      titulo: e.titulo,
-      curso: e.curso,
-    }));
-
     console.log(
       renderSection(
         `Calendario — próximos ${dias} días`,
-        renderTable(rows, [
-          { header: "Fecha", key: "fecha" },
-          { header: "Tipo", key: "tipo" },
-          { header: "Título", key: "titulo", maxWidth: 45 },
-          { header: "Curso", key: "curso" },
+        renderTable(sorted, [
+          {
+            header: "Fecha",
+            get: (e) => formatDueDate(e.fecha),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Tipo",
+            get: (e) => e.tipo,
+            fixed: 7,
+            color: (v) => (v === "tarea" ? pc.red("TAREA") : pc.cyan("evento")),
+            show: "always",
+            priority: 10,
+          },
+          {
+            header: "Título",
+            get: (e) => e.titulo,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Curso",
+            get: (e) => e.curso,
+            fixed: 12,
+            show: "wide",
+            priority: 5,
+          },
         ]),
       ),
     );

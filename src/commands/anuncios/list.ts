@@ -5,7 +5,9 @@ import { fetchAnnouncements } from "../../lib/api/canvas/announcements.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable, truncateHtml } from "../../lib/output/human.js";
+import { renderSection, truncateHtml } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
 
@@ -63,23 +65,56 @@ export async function runAnuncios(opts: {
       return;
     }
 
-    const rows = anuncios.map((a) => ({
-      curso: a.curso.code,
-      titulo: a.title,
-      fecha: formatDate(a.posted_at),
-      autor: a.author,
-      ...(opts.full ? { cuerpo: a.body } : {}),
-    }));
-
-    const columns = [
-      { header: "Curso", key: "curso" },
-      { header: "Título", key: "titulo", maxWidth: 40 },
-      { header: "Fecha", key: "fecha" },
-      { header: "Autor", key: "autor", maxWidth: 30 },
-      ...(opts.full ? [{ header: "Mensaje", key: "cuerpo", maxWidth: 80 }] : []),
+    const baseColumns = [
+      {
+        header: "Curso",
+        get: (a: (typeof anuncios)[number]) => a.curso.code,
+        fixed: 12,
+        show: "always" as const,
+        priority: 10,
+      },
+      {
+        header: "Título",
+        get: (a: (typeof anuncios)[number]) => a.title,
+        weight: 2,
+        min: 20,
+        show: "always" as const,
+        priority: 9,
+      },
+      {
+        header: "Fecha",
+        get: (a: (typeof anuncios)[number]) => formatDueDate(a.posted_at),
+        weight: 1,
+        min: 14,
+        show: "wide" as const,
+        priority: 6,
+      },
+      {
+        header: "Autor",
+        get: (a: (typeof anuncios)[number]) => a.author,
+        weight: 1,
+        min: 12,
+        max: 25,
+        show: "wide" as const,
+        priority: 4,
+      },
     ];
 
-    console.log(renderSection("Anuncios", renderTable(rows, columns)));
+    const fullColumns = opts.full
+      ? [
+          ...baseColumns,
+          {
+            header: "Mensaje",
+            get: (a: (typeof anuncios)[number]) => a.body,
+            weight: 3,
+            min: 20,
+            show: "always" as const,
+            priority: 7,
+          },
+        ]
+      : baseColumns;
+
+    console.log(renderSection("Anuncios", renderTable(anuncios, fullColumns)));
     if (!opts.full) console.log(pc.dim("  Usa --full para ver el cuerpo completo."));
   } catch (e) {
     if (opts.json) {

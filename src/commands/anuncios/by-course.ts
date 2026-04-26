@@ -7,7 +7,9 @@ import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable, truncateHtml } from "../../lib/output/human.js";
+import { renderSection, truncateHtml } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
 import type { CanvasCourse } from "../../types/canvas.js";
@@ -103,21 +105,51 @@ export async function runAnunciosByCourse(
       return;
     }
 
-    const rows = anuncios.map((a) => ({
-      titulo: a.title,
-      fecha: formatDate(a.posted_at),
-      autor: a.author,
-      ...(opts.full ? { cuerpo: a.body } : {}),
-    }));
-
-    const columns = [
-      { header: "Título", key: "titulo", maxWidth: 45 },
-      { header: "Fecha", key: "fecha" },
-      { header: "Autor", key: "autor", maxWidth: 30 },
-      ...(opts.full ? [{ header: "Mensaje", key: "cuerpo", maxWidth: 80 }] : []),
+    const baseColumns = [
+      {
+        header: "Título",
+        get: (a: (typeof anuncios)[number]) => a.title,
+        weight: 2,
+        min: 20,
+        show: "always" as const,
+        priority: 9,
+      },
+      {
+        header: "Fecha",
+        get: (a: (typeof anuncios)[number]) => formatDueDate(a.posted_at),
+        weight: 1,
+        min: 14,
+        show: "wide" as const,
+        priority: 6,
+      },
+      {
+        header: "Autor",
+        get: (a: (typeof anuncios)[number]) => a.author,
+        weight: 1,
+        min: 12,
+        max: 25,
+        show: "wide" as const,
+        priority: 4,
+      },
     ];
 
-    console.log(renderSection(`Anuncios — ${resolvedCourse.code}`, renderTable(rows, columns)));
+    const fullColumns = opts.full
+      ? [
+          ...baseColumns,
+          {
+            header: "Mensaje",
+            get: (a: (typeof anuncios)[number]) => a.body,
+            weight: 3,
+            min: 20,
+            show: "always" as const,
+            priority: 7,
+          },
+        ]
+      : baseColumns;
+
+    console.log(
+      renderSection(`Anuncios — ${resolvedCourse.code}`, renderTable(anuncios, fullColumns)),
+    );
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));

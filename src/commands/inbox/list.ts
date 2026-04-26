@@ -4,7 +4,9 @@ import pc from "picocolors";
 import { fetchConversations } from "../../lib/api/canvas/conversations.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 
 export async function runInbox(opts: {
@@ -36,25 +38,51 @@ export async function runInbox(opts: {
       return;
     }
 
-    const rows = conversaciones.map((c) => ({
-      id: String(c.id),
-      de: c.from,
-      asunto: c.subject,
-      ultimo: formatDate(c.last_message_at),
-      mensajes: String(c.count),
-      leido: c.unread ? pc.yellow("NO") : pc.dim("sí"),
-    }));
-
     console.log(
       renderSection(
         "Inbox",
-        renderTable(rows, [
-          { header: "ID", key: "id" },
-          { header: "De", key: "de", maxWidth: 30 },
-          { header: "Asunto", key: "asunto", maxWidth: 40 },
-          { header: "Último", key: "ultimo" },
-          { header: "Msgs", key: "mensajes" },
-          { header: "Leído", key: "leido" },
+        renderTable(conversaciones, [
+          {
+            header: "De",
+            get: (c) => c.from,
+            weight: 1,
+            min: 12,
+            max: 25,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Asunto",
+            get: (c) => c.subject,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 10,
+          },
+          {
+            header: "Último",
+            get: (c) => formatDueDate(c.last_message_at),
+            weight: 1,
+            min: 14,
+            show: "wide",
+            priority: 6,
+          },
+          {
+            header: "Msgs",
+            get: (c) => String(c.count),
+            fixed: 5,
+            align: "right",
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Leído",
+            get: (c) => (c.unread ? "NO" : "sí"),
+            fixed: 6,
+            color: (v) => (v === "NO" ? pc.yellow(v) : pc.dim(v)),
+            show: "always",
+            priority: 8,
+          },
         ]),
       ),
     );
