@@ -1,5 +1,6 @@
-import { chmodSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
+import { atomicWrite } from "../foundation/atomic-write.js";
 import { getProfileDir } from "../env.js";
 
 function sessionPath(type: "intranet" | "canvas", profile: string): string {
@@ -7,15 +8,8 @@ function sessionPath(type: "intranet" | "canvas", profile: string): string {
 }
 
 export function fileSet(type: "intranet" | "canvas", profile: string, value: string): void {
-  const dir = getProfileDir(profile);
-  mkdirSync(dir, { recursive: true });
   const fp = sessionPath(type, profile);
-  writeFileSync(fp, value, "utf-8");
-  try {
-    chmodSync(fp, 0o600);
-  } catch {
-    // Best-effort chmod
-  }
+  atomicWrite(fp, value, { mode: 0o600 });
   process.stderr.write(
     `[wiener-cli] Keychain unavailable; session stored in ${fp} (0600). Consider configuring macOS Keychain.\n`,
   );
