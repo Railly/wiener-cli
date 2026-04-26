@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { atomicWriteJson } from "../foundation/atomic-write.js";
 import type { StateSnapshots, WienerState } from "../../types/state.js";
 
 export const EMPTY_SNAPSHOTS: StateSnapshots = {
@@ -31,8 +32,7 @@ export function loadState(profile = "default"): WienerState | null {
 export function saveState(state: WienerState, profile = "default"): void {
   const dir = join(homedir(), ".wiener");
   mkdirSync(dir, { recursive: true });
-  const path = statePath(profile);
-  writeFileSync(path, JSON.stringify(state, null, 2), { encoding: "utf-8" });
+  atomicWriteJson(statePath(profile), state);
 }
 
 export function isStateStale(state: WienerState, maxAgeHours: number): boolean {

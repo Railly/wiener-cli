@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { AliasStore } from "../../../src/types/course.js";
+import { atomicWriteJson } from "../foundation/atomic-write.js";
+import type { AliasStore } from "../../types/course.js";
 import { getConfigDir } from "../env.js";
 
 function aliasFilePath(): string {
@@ -18,9 +19,7 @@ export function loadAliasStore(): AliasStore {
 }
 
 export function saveAliasStore(store: AliasStore): void {
-  const dir = getConfigDir();
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(aliasFilePath(), JSON.stringify(store, null, 2), "utf-8");
+  atomicWriteJson(aliasFilePath(), store);
 }
 
 export function getProfileAliases(profile = "default"): Record<string, string> {
