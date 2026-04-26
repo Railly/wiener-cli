@@ -1,3 +1,5 @@
+import { getWienerPaths } from "./foundation/xdg-paths.js";
+
 export interface WienerEnv {
   WIENER_INTRANET_USER?: string;
   WIENER_INTRANET_PASS?: string;
@@ -22,10 +24,7 @@ export function getEnv(): WienerEnv {
 }
 
 export function getConfigDir(): string {
-  const env = getEnv();
-  if (env.WIENER_CONFIG_DIR) return env.WIENER_CONFIG_DIR;
-  const home = process.env.HOME ?? process.env.USERPROFILE ?? ".";
-  return `${home}/.wiener`;
+  return getWienerPaths().home;
 }
 
 export function getProfileDir(profile = "default"): string {

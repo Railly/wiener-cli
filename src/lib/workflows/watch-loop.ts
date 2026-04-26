@@ -9,8 +9,8 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../env.js";
-import { notifyMacos } from "../notify/macos.js";
 import { notifyWhatsApp } from "../notify/whatsapp.js";
+import { notifyOs } from "../platform/notify-os.js";
 import type { DeltaItem } from "../state/diff.js";
 import { runNuevo } from "./nuevo-diff.js";
 
@@ -74,7 +74,12 @@ async function dispatchNotify(
   if (items.length === 0) return;
   const useWhatsapp = whatsapp || method === "whatsapp" || method === "both";
   const useMacos = !whatsapp && (method === "macos" || method === "both" || !method);
-  if (useMacos) await notifyMacos(items);
+  if (useMacos) {
+    const title = "Wiener";
+    const message =
+      items.length === 1 ? (items[0]?.titulo ?? "") : `${items.length} cambios — ver wiener nuevo`;
+    await notifyOs(title, message, { appName: "Wiener" });
+  }
   if (useWhatsapp) await notifyWhatsApp(items);
 }
 

@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { DEFAULT_CONFIG } from "../types/config.js";
 import type { WienerConfig } from "../types/config.js";
 import { getConfigDir } from "./env.js";
+import { atomicWriteJson } from "./foundation/atomic-write.js";
 
 function configFilePath(configDir?: string): string {
   return path.join(configDir ?? getConfigDir(), "config.json");
@@ -35,8 +36,7 @@ function mergeConfig(defaults: WienerConfig, overrides: Partial<WienerConfig>): 
 
 export function saveConfig(config: WienerConfig, configDir?: string): void {
   const dir = configDir ?? getConfigDir();
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(configFilePath(dir), JSON.stringify(config, null, 2), "utf-8");
+  atomicWriteJson(configFilePath(dir), config);
 }
 
 export function ensureConfig(configDir?: string): WienerConfig {

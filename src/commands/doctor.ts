@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { platform } from "node:os";
 import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
@@ -10,6 +11,7 @@ import { ok } from "../lib/output/envelope.js";
 import { printTable } from "../lib/output/human.js";
 import { emitJson } from "../lib/output/json.js";
 import { extractCsrfToken } from "../lib/parsers/csrf-token.js";
+import { isCi, isWsl } from "../lib/platform/detect.js";
 
 interface DoctorCheck {
   name: string;
@@ -99,6 +101,14 @@ async function checkCsrfToken(): Promise<DoctorCheck> {
   }
 }
 
+function checkEnv(): DoctorCheck {
+  const os = platform();
+  const parts: string[] = [`platform=${os}`];
+  if (isCi()) parts.push("ci=true");
+  if (isWsl()) parts.push("wsl=true");
+  return { name: "env", ok: true, detail: parts.join(", ") };
+}
+
 async function checkPatGenerationEnabled(profile: string): Promise<DoctorCheck> {
   const session = await loadCanvasSession(profile);
   if (!session)
@@ -139,6 +149,7 @@ export function registerDoctor(program: Command): void {
       const checks: DoctorCheck[] = [];
 
       // Always run
+      checks.push(checkEnv());
       checks.push(await checkIntranetReachable());
       checks.push(await checkIntranetSession(profile));
       checks.push(await checkCanvasReachable());
