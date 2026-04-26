@@ -1,17 +1,17 @@
-import { auditLog } from "../../lib/audit/log.ts";
-import { loadIntranetSession } from "../../lib/auth/store.ts";
-import { WienerError, isWienerLike } from "../../lib/errors.ts";
-import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
-import { printError, printHeader, printLine } from "../../lib/output/human.ts";
-import { printJson } from "../../lib/output/json.ts";
-import { checkRateGuard, markRateGuardUsed } from "../../lib/safety/rate-guard.ts";
+import pc from "picocolors";
 import {
   fetchTramitePreview,
   fetchTramiteTipos,
   submitTramiteGenerar,
 } from "../../lib/api/intranet/tramite.ts";
+import { auditLog } from "../../lib/audit/log.ts";
+import { loadIntranetSession } from "../../lib/auth/store.ts";
+import { isWienerLike } from "../../lib/errors.ts";
+import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
+import { printError, printHeader, printLine } from "../../lib/output/human.ts";
+import { printJson } from "../../lib/output/json.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
-import pc from "picocolors";
+import { checkRateGuard, markRateGuardUsed } from "../../lib/safety/rate-guard.ts";
 
 export interface TramiteGenerarOptions {
   tipo: string;
@@ -77,7 +77,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
           printError(`[${e.code}] ${e.message}`);
           if (e.hint) printLine(pc.dim(`Hint: ${e.hint}`));
         }
-        process.exit(1); return;
+        process.exit(1);
+        return;
       }
       throw e;
     }
@@ -89,8 +90,9 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
 
     if (tipos.length > 0) {
       const match = tipos.find(
-        (t) => t.value.toLowerCase() === opts.tipo.toLowerCase() ||
-               t.label.toLowerCase().includes(opts.tipo.toLowerCase()),
+        (t) =>
+          t.value.toLowerCase() === opts.tipo.toLowerCase() ||
+          t.label.toLowerCase().includes(opts.tipo.toLowerCase()),
       );
       if (!match) {
         const validList = tipos.map((t) => `  ${t.value} — ${t.label}`).join("\n");
@@ -106,7 +108,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
           printError(`[validation-error] Unknown --tipo "${opts.tipo}".`);
           printLine("Valid tipos:\n" + validList);
         }
-        process.exit(1); return;
+        process.exit(1);
+        return;
       }
     }
     // If tipos fetch returned empty (form shape changed), proceed with user's input
@@ -125,11 +128,11 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
     }
 
     // T2 confirmation
-    const decision = await confirmT2(
-      "tramite generar",
-      previewText,
-      { yes: opts.yes, dryRun: opts.dryRun, noInput: opts.noInput },
-    );
+    const decision = await confirmT2("tramite generar", previewText, {
+      yes: opts.yes,
+      dryRun: opts.dryRun,
+      noInput: opts.noInput,
+    });
 
     if (decision === "dry-run") {
       const data = { dryRun: true, ...preview };
@@ -149,7 +152,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
       } else {
         printLine(pc.dim("Cancelled."));
       }
-      process.exit(0); return;
+      process.exit(0);
+      return;
     }
 
     // Audit: started
@@ -211,7 +215,8 @@ export async function runTramiteGenerar(opts: TramiteGenerarOptions): Promise<vo
         printError(`[${e.code}] ${e.message}`);
         if (e.hint) printLine(pc.dim(`Hint: ${e.hint}`));
       }
-      process.exit(1); return;
+      process.exit(1);
+      return;
     }
     throw e;
   }

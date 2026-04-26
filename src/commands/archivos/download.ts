@@ -1,15 +1,14 @@
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import pc from "picocolors";
+import { getFile } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
 import { WienerError, isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
-import { getFile } from "../../lib/api/canvas/files.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
-import pc from "picocolors";
 
 const LARGE_FILE_THRESHOLD_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -38,7 +37,9 @@ function renderProgress(downloaded: number, total: number, filename: string): vo
   const filled = Math.floor((pct / 100) * barWidth);
   const bar = "█".repeat(filled) + "░".repeat(barWidth - filled);
   const sizeStr = `${formatSize(downloaded)} / ${formatSize(total)}`;
-  process.stderr.write(`\r  ${pc.cyan(filename.slice(0, 30).padEnd(30))} [${bar}] ${pct}% ${sizeStr}  `);
+  process.stderr.write(
+    `\r  ${pc.cyan(filename.slice(0, 30).padEnd(30))} [${bar}] ${pct}% ${sizeStr}  `,
+  );
 }
 
 export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promise<void> {
@@ -65,9 +66,7 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
     const file = await getFile(opts.fileId, session.token);
 
     // Determine destination path
-    const outPath = opts.out
-      ? resolve(opts.out)
-      : resolve(process.cwd(), file.display_name);
+    const outPath = opts.out ? resolve(opts.out) : resolve(process.cwd(), file.display_name);
 
     // Check if file already exists
     if (existsSync(outPath) && !opts.force) {
@@ -82,7 +81,8 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
         printError(`[validation-error] File already exists: ${outPath}`);
         printLine(pc.dim("Hint: Use --force to overwrite."));
       }
-      process.exit(1); return;
+      process.exit(1);
+      return;
     }
 
     // T2 gate for large files
@@ -100,11 +100,11 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
         pc.dim("Continúa con --yes o cancela con Ctrl+C."),
       ].join("\n");
 
-      const decision = await confirmT2(
-        "archivos download",
-        previewText,
-        { yes: opts.yes, dryRun: opts.dryRun, noInput: opts.noInput },
-      );
+      const decision = await confirmT2("archivos download", previewText, {
+        yes: opts.yes,
+        dryRun: opts.dryRun,
+        noInput: opts.noInput,
+      });
 
       if (decision === "dry-run") {
         const data = {
@@ -116,7 +116,9 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
           destination: outPath,
         };
         if (opts.json) {
-          printJson(successEnvelope(data, { duration_ms: Date.now() - startMs, from_cache: false }));
+          printJson(
+            successEnvelope(data, { duration_ms: Date.now() - startMs, from_cache: false }),
+          );
         } else {
           printLine(previewText);
           printLine(pc.dim("\n[dry-run] No action taken."));
@@ -131,7 +133,8 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
         } else {
           printLine(pc.dim("Cancelled."));
         }
-        process.exit(0); return;
+        process.exit(0);
+        return;
       }
     } else if (opts.dryRun) {
       // T0 dry-run still supported
@@ -260,7 +263,8 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
         printError(`[${e.code}] ${e.message}`);
         if (e.hint) printLine(pc.dim(`Hint: ${e.hint}`));
       }
-      process.exit(1); return;
+      process.exit(1);
+      return;
     }
     throw e;
   }
