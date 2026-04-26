@@ -10,21 +10,7 @@ import { err, ok } from "../lib/output/envelope.js";
 import { formatDate, renderSection, renderTable, truncateHtml } from "../lib/output/human.js";
 import { emit } from "../lib/output/json.js";
 import { pMap } from "../lib/parallel.js";
-import type { CanvasCourse } from "../types/canvas.js";
-import type { Course, SectionType } from "../types/course.js";
-
-function toList(canvasCourses: CanvasCourse[]): Course[] {
-  return canvasCourses.map((c) => ({
-    id: c.id,
-    code: c.course_code,
-    name: c.name,
-    alias: c.course_code.toLowerCase(),
-    canvasName: c.name,
-    term: c.term?.name,
-    role: c.enrollments?.[0]?.role ?? "StudentEnrollment",
-    calendarIcsUrl: c.calendar?.ics,
-  }));
-}
+import type { SectionType } from "../types/course.js";
 
 export async function runDiscusiones(
   ref: string,
@@ -38,8 +24,8 @@ export async function runDiscusiones(
 ): Promise<void> {
   try {
     const canvasCourses = await fetchActiveCourses();
-    const courses = toList(canvasCourses);
-    const resolution = resolveCourse(ref, courses, { exact: opts.exact, noInput: opts.noInput });
+    const logical = groupBySection(canvasCourses);
+    const resolution = resolveCourse(ref, logical, { exact: opts.exact, noInput: opts.noInput });
 
     if (resolution.kind === "no-match" || resolution.kind === "ambiguous") {
       const errEnv = err("course-not-found", `No course matching "${ref}"`);
@@ -52,19 +38,14 @@ export async function runDiscusiones(
       return;
     }
 
-    const resolvedCourse = resolution.kind === "exact" ? resolution.course : resolution.course;
-    const logical = groupBySection(courses);
-    const logicalCourse = logical.find((lc) => lc.code === resolvedCourse.code);
-
-    const secciones = logicalCourse?.secciones ?? [
-      { id: resolvedCourse.id, canvasName: resolvedCourse.canvasName, seccion: "T" as SectionType },
-    ];
+    const resolvedCourse = resolution.course;
+    const secciones = resolvedCourse.secciones;
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
     const allDiscusiones = await pMap(
       filtered,
       async (s) => {
-        const discussions = await fetchDiscussions(s.id);
+        const discussions = await fetchDiscussions(Number(s.id));
         return discussions.map((d) => ({
           id: d.id,
           title: d.title,
