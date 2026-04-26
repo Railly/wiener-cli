@@ -101,3 +101,47 @@ describe("groupBySection", () => {
     expect(ciencia?.alias).toBe("ac6m28");
   });
 });
+
+describe("groupBySection — composite key (same code, different baseName)", () => {
+  const duplicateCodeCourses: CanvasCourse[] = [
+    {
+      id: "601",
+      name: "FARMACIA CLÍNICA I - T",
+      course_code: "FB6N2",
+      enrollment_state: "active",
+    },
+    {
+      id: "602",
+      name: "FARMACIA CLÍNICA I - P1",
+      course_code: "FB6N2",
+      enrollment_state: "active",
+    },
+    {
+      id: "701",
+      name: "PREPARACIONES FARMACÉUTICAS - T",
+      course_code: "FB6N2",
+      enrollment_state: "active",
+    },
+  ];
+
+  it("groups same-code same-baseName courses into one LogicalCourse", () => {
+    const grouped = groupBySection(duplicateCodeCourses);
+    const fb6n2courses = grouped.filter((c) => c.code === "FB6N2");
+    const farmacia = fb6n2courses.find((c) => c.name.toLowerCase().includes("cl"));
+    expect(farmacia?.secciones.length).toBe(2);
+  });
+
+  it("keeps different baseNames as separate LogicalCourses even with same code", () => {
+    const grouped = groupBySection(duplicateCodeCourses);
+    const fb6n2courses = grouped.filter((c) => c.code === "FB6N2");
+    expect(fb6n2courses.length).toBe(2);
+  });
+
+  it("skips courses with no course_code without crashing", () => {
+    const withNull = [
+      ...duplicateCodeCourses,
+      { id: "999", name: "BAD", course_code: undefined as unknown as string, enrollment_state: "active" },
+    ] as CanvasCourse[];
+    expect(() => groupBySection(withNull)).not.toThrow();
+  });
+});

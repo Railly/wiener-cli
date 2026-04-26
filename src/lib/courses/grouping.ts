@@ -11,34 +11,50 @@ export function parseSectionFromName(name: string): { baseName: string; seccion:
   return { baseName: name.trim(), seccion: "T" };
 }
 
+function normalizeBaseName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function groupBySection(
   courses: CanvasCourse[],
   aliasMap: Record<string, string> = {},
 ): LogicalCourse[] {
-  const byCode = new Map<string, LogicalCourse>();
+  const byKey = new Map<string, LogicalCourse>();
 
   for (const course of courses) {
     const code = course.course_code;
-    const { baseName, seccion } = parseSectionFromName(course.name);
+    if (!code) continue;
 
-    const existing = byCode.get(code);
+    const { baseName, seccion } = parseSectionFromName(course.name ?? "");
+    const cleanedBaseName = baseName.replace(new RegExp(`^${code}\\s*-\\s*`, "i"), "");
+    const key = `${code}::${normalizeBaseName(cleanedBaseName)}`;
+
+    const aliasKey = `${code}::${(course.name ?? "").trim()}`;
+    const alias = aliasMap[aliasKey] ?? aliasMap[code] ?? code.toLowerCase();
+
+    const existing = byKey.get(key);
     if (existing) {
       existing.secciones.push({
         id: course.id,
         seccion,
-        name: course.name,
+        name: course.name ?? "",
       });
     } else {
-      byCode.set(code, {
+      byKey.set(key, {
         code,
-        name: baseName,
-        alias: aliasMap[code] ?? code.toLowerCase(),
-        secciones: [{ id: course.id, seccion, name: course.name }],
+        name: cleanedBaseName || baseName,
+        alias,
+        secciones: [{ id: course.id, seccion, name: course.name ?? "" }],
         term: course.term?.name,
         role: course.enrollments?.[0]?.role,
       });
     }
   }
 
-  return Array.from(byCode.values());
+  return Array.from(byKey.values());
 }
