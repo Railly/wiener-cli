@@ -7,7 +7,9 @@ import { groupBySection } from "../lib/courses/grouping.js";
 import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
 import { err, ok } from "../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../lib/output/human.js";
+import { renderSection } from "../lib/output/human.js";
+import { renderTable } from "../lib/output/responsive-table.js";
+import { formatDueDate } from "../lib/format/date.js";
 import { emit } from "../lib/output/json.js";
 import { pMap } from "../lib/parallel.js";
 import type { SectionType } from "../types/course.js";
@@ -81,25 +83,57 @@ export async function runConferencias(
       return;
     }
 
-    const rows = conferencias.map((c) => ({
-      secc: c.seccion,
-      titulo: c.title,
-      tipo: c.type,
-      inicio: formatDate(c.started_at),
-      fin: formatDate(c.ended_at),
-      grabaciones: c.recordings.length > 0 ? pc.green(String(c.recordings.length)) : pc.dim("0"),
-    }));
-
     console.log(
       renderSection(
         `Conferencias — ${resolvedCourse.code}`,
-        renderTable(rows, [
-          { header: "Secc.", key: "secc" },
-          { header: "Título", key: "titulo", maxWidth: 40 },
-          { header: "Tipo", key: "tipo" },
-          { header: "Inicio", key: "inicio" },
-          { header: "Fin", key: "fin" },
-          { header: "Grabs.", key: "grabaciones" },
+        renderTable(conferencias, [
+          {
+            header: "Secc.",
+            get: (c) => c.seccion,
+            fixed: 6,
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Título",
+            get: (c) => c.title,
+            weight: 2,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Tipo",
+            get: (c) => c.type,
+            fixed: 10,
+            show: "wide",
+            priority: 3,
+          },
+          {
+            header: "Inicio",
+            get: (c) => formatDueDate(c.started_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Fin",
+            get: (c) => formatDueDate(c.ended_at),
+            weight: 1,
+            min: 14,
+            show: "wide",
+            priority: 6,
+          },
+          {
+            header: "Grabs.",
+            get: (c) => String(c.recordings.length),
+            fixed: 6,
+            align: "right",
+            color: (v) => (Number(v) > 0 ? pc.green(v) : pc.dim(v)),
+            show: "wide",
+            priority: 5,
+          },
         ]),
       ),
     );

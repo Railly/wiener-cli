@@ -7,7 +7,9 @@ import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { formatDate, renderSection, renderTable } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { pMap } from "../../lib/parallel.js";
 import type { SectionType } from "../../types/course.js";
@@ -82,39 +84,68 @@ export async function runCalificacionesDetail(
       return;
     }
 
-    function gradeColor(grade: string | null): string {
-      if (!grade) return pc.dim("—");
+    function gradeColorStr(grade: string | null): string {
+      if (!grade || grade === "—") return "—";
       const n = Number.parseFloat(grade);
       if (Number.isNaN(n)) return grade;
       if (n >= 14) return pc.green(grade);
       if (n >= 11) return pc.yellow(grade);
-      return pc.red(grade);
+      return pc.red(pc.bold(grade));
     }
-
-    const rows = submissions.map((s) => ({
-      secc: s.seccion,
-      nombre: s.assignment_name,
-      vencimiento: formatDate(s.due_at),
-      nota: gradeColor(s.grade ?? (s.score !== null ? String(s.score) : null)),
-      estado:
-        s.state === "graded"
-          ? pc.green("cal.")
-          : s.state === "submitted"
-            ? pc.yellow("ent.")
-            : pc.red("pend."),
-      tarde: s.late ? pc.red("sí") : "no",
-    }));
 
     console.log(
       renderSection(
         `Calificaciones — ${resolvedCourse.code}`,
-        renderTable(rows, [
-          { header: "Secc.", key: "secc" },
-          { header: "Tarea", key: "nombre", maxWidth: 45 },
-          { header: "Vencimiento", key: "vencimiento" },
-          { header: "Nota", key: "nota" },
-          { header: "Estado", key: "estado" },
-          { header: "Tarde", key: "tarde" },
+        renderTable(submissions, [
+          {
+            header: "Secc.",
+            get: (s) => s.seccion,
+            fixed: 6,
+            show: "wide",
+            priority: 4,
+          },
+          {
+            header: "Tarea",
+            get: (s) => s.assignment_name,
+            weight: 3,
+            min: 20,
+            show: "always",
+            priority: 9,
+          },
+          {
+            header: "Vence",
+            get: (s) => formatDueDate(s.due_at),
+            weight: 1,
+            min: 14,
+            show: "always",
+            priority: 8,
+          },
+          {
+            header: "Nota",
+            get: (s) => s.grade ?? (s.score !== null ? String(s.score) : "—"),
+            fixed: 6,
+            color: (v) => gradeColorStr(v === "—" ? null : v),
+            show: "always",
+            priority: 7,
+          },
+          {
+            header: "Estado",
+            get: (s) =>
+              s.state === "graded" ? "cal." : s.state === "submitted" ? "ent." : "pend.",
+            fixed: 6,
+            color: (v) =>
+              v === "cal." ? pc.green(v) : v === "ent." ? pc.yellow(v) : pc.red(v),
+            show: "always",
+            priority: 6,
+          },
+          {
+            header: "Tarde",
+            get: (s) => (s.late ? "sí" : "no"),
+            fixed: 5,
+            color: (v) => (v === "sí" ? pc.red(v) : pc.dim(v)),
+            show: "wide",
+            priority: 3,
+          },
         ]),
       ),
     );

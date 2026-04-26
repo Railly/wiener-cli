@@ -6,7 +6,8 @@ import { generateAliasMap } from "../../lib/courses/auto-alias.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import type { WienerError } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { printError, printTable } from "../../lib/output/human.js";
+import { printError } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 import { emitJson } from "../../lib/output/json.js";
 
 interface FavoritosOptions {
@@ -47,13 +48,12 @@ export function registerCursosFavoritos(cursosCmd: Command): void {
 
         const data = { cursos: logical };
         if (opts.json) emitJson(ok(data, { duration_ms: Date.now() - start }));
-        printTable(
-          logical.map((c) => ({ ...c, secciones: c.secciones.map((s) => s.seccion).join("/") })),
-          [
-            { header: "Code", key: "code" },
-            { header: "Name", key: "name" },
-            { header: "Alias", key: "alias" },
-          ],
+        console.log(
+          renderTable(logical, [
+            { header: "Code", get: (c) => c.code, fixed: 12, show: "always", priority: 10 },
+            { header: "Name", get: (c) => c.name, weight: 2, min: 20, show: "always", priority: 9 },
+            { header: "Alias", get: (c) => c.alias, fixed: 12, show: "wide", priority: 5 },
+          ]),
         );
         process.exit(0);
       } catch (e) {

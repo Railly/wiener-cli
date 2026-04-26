@@ -6,8 +6,8 @@ import { generateAliasMapByCodeName } from "../../lib/courses/auto-alias.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import type { WienerError } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { printTable } from "../../lib/output/human.js";
 import { printError } from "../../lib/output/human.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 import { emitJson } from "../../lib/output/json.js";
 
 interface ListOptions {
@@ -66,12 +66,14 @@ export function registerCursosList(cursosCmd: Command): void {
             })),
           };
           if (opts.json) emitJson(ok(data, { duration_ms: Date.now() - start }));
-          printTable(data.cursos, [
-            { header: "Code", key: "code" },
-            { header: "Name", key: "name" },
-            { header: "Alias", key: "alias" },
-            { header: "Term", key: "term" },
-          ]);
+          console.log(
+            renderTable(data.cursos, [
+              { header: "Code", get: (c) => c.code, fixed: 12, show: "always", priority: 10 },
+              { header: "Name", get: (c) => c.name ?? "", weight: 2, min: 20, show: "always", priority: 9 },
+              { header: "Alias", get: (c) => c.alias, fixed: 12, show: "wide", priority: 5 },
+              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, show: "wide", priority: 4 },
+            ]),
+          );
         } else {
           const logical = groupBySection(rawCourses, aliasMap);
           const data = {
@@ -79,24 +81,20 @@ export function registerCursosList(cursosCmd: Command): void {
               code: l.code,
               name: l.name,
               alias: l.alias,
-              secciones: l.secciones,
+              secciones: l.secciones.map((s) => s.seccion).join("/"),
               term: l.term,
               role: l.role,
             })),
           };
-          if (opts.json) emitJson(ok(data, { duration_ms: Date.now() - start }));
-          printTable(
-            data.cursos.map((c) => ({
-              ...c,
-              secciones: c.secciones.map((s) => s.seccion).join("/"),
-            })),
-            [
-              { header: "Code", key: "code" },
-              { header: "Name", key: "name" },
-              { header: "Alias", key: "alias" },
-              { header: "Sections", key: "secciones" },
-              { header: "Term", key: "term" },
-            ],
+          if (opts.json) emitJson(ok({ cursos: logical.map((l) => ({ code: l.code, name: l.name, alias: l.alias, secciones: l.secciones, term: l.term, role: l.role })) }, { duration_ms: Date.now() - start }));
+          console.log(
+            renderTable(data.cursos, [
+              { header: "Code", get: (c) => c.code, fixed: 12, show: "always", priority: 10 },
+              { header: "Name", get: (c) => c.name, weight: 2, min: 20, show: "always", priority: 9 },
+              { header: "Alias", get: (c) => c.alias, fixed: 12, show: "wide", priority: 5 },
+              { header: "Sections", get: (c) => c.secciones, fixed: 9, show: "wide", priority: 4 },
+              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, show: "wide", priority: 3 },
+            ]),
           );
         }
         process.exit(0);
