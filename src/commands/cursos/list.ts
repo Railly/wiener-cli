@@ -9,8 +9,8 @@ import { groupBySection } from "../../lib/courses/grouping.js";
 import type { WienerError } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { printError } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
 import { emitJson } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 
 interface ListOptions {
   json?: boolean;
@@ -18,7 +18,6 @@ interface ListOptions {
   profile?: string;
   favoritos?: boolean;
 }
-
 
 export function registerCursosList(cursosCmd: Command): void {
   cursosCmd
@@ -77,10 +76,38 @@ export function registerCursosList(cursosCmd: Command): void {
           }
           console.log(
             renderTable(data.cursos, [
-              { header: "Code", get: (c) => c.code, fixed: 12, color: (v) => pc.bold(pc.yellow(v)), show: "always", priority: 10 },
-              { header: "Name", get: (c) => c.name ?? "", weight: 2, min: 20, show: "always", priority: 9 },
-              { header: "Alias", get: (c) => c.alias, fixed: 12, color: (v) => pc.dim(v), show: "wide", priority: 5 },
-              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, color: (v) => pc.dim(v), show: "wide", priority: 4 },
+              {
+                header: "Code",
+                get: (c) => c.code,
+                fixed: 12,
+                color: (v) => pc.bold(pc.yellow(v)),
+                show: "always",
+                priority: 10,
+              },
+              {
+                header: "Name",
+                get: (c) => c.name ?? "",
+                weight: 2,
+                min: 20,
+                show: "always",
+                priority: 9,
+              },
+              {
+                header: "Alias",
+                get: (c) => c.alias,
+                fixed: 12,
+                color: (v) => pc.dim(v),
+                show: "wide",
+                priority: 5,
+              },
+              {
+                header: "Term",
+                get: (c) => c.term ?? "—",
+                fixed: 10,
+                color: (v) => pc.dim(v),
+                show: "wide",
+                priority: 4,
+              },
             ]),
           );
         } else {
@@ -101,11 +128,39 @@ export function registerCursosList(cursosCmd: Command): void {
           }
           console.log(
             renderTable(data.cursos, [
-              { header: "Code", get: (c) => c.code, fixed: 12, color: (v) => pc.bold(pc.yellow(v)), show: "always", priority: 10 },
-              { header: "Name", get: (c) => c.name, weight: 2, min: 20, show: "always", priority: 9 },
-              { header: "Alias", get: (c) => c.alias, fixed: 12, color: (v) => pc.dim(v), show: "wide", priority: 5 },
+              {
+                header: "Code",
+                get: (c) => c.code,
+                fixed: 12,
+                color: (v) => pc.bold(pc.yellow(v)),
+                show: "always",
+                priority: 10,
+              },
+              {
+                header: "Name",
+                get: (c) => c.name,
+                weight: 2,
+                min: 20,
+                show: "always",
+                priority: 9,
+              },
+              {
+                header: "Alias",
+                get: (c) => c.alias,
+                fixed: 12,
+                color: (v) => pc.dim(v),
+                show: "wide",
+                priority: 5,
+              },
               { header: "Secc.", get: (c) => c.secciones, fixed: 9, show: "wide", priority: 4 },
-              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, color: (v) => pc.dim(v), show: "wide", priority: 3 },
+              {
+                header: "Term",
+                get: (c) => c.term ?? "—",
+                fixed: 10,
+                color: (v) => pc.dim(v),
+                show: "wide",
+                priority: 3,
+              },
             ]),
           );
         }

@@ -4,12 +4,12 @@ import pc from "picocolors";
 import { fetchAnnouncements } from "../../lib/api/canvas/announcements.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { ok } from "../../lib/output/envelope.js";
 import { renderSection, truncateHtml } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 
 export async function runAnuncios(opts: {
   json?: boolean;

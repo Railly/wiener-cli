@@ -4,8 +4,8 @@ import { writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
-import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { emitNextSteps } from "../../lib/agent/next-steps.js";
+import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
@@ -46,7 +46,9 @@ function defaultOutPath(): string {
 function printIcsSummary(outPath: string, courseCount: number, eventCount: number): void {
   console.log(`\n${pc.cyan("✓")} ${pc.bold("Calendario exportado")}\n`);
   const labelW = 10;
-  console.log(`  ${pc.dim("Archivo:".padEnd(labelW))} ${pc.bold(outPath.split("/").pop() ?? outPath)}`);
+  console.log(
+    `  ${pc.dim("Archivo:".padEnd(labelW))} ${pc.bold(outPath.split("/").pop() ?? outPath)}`,
+  );
   console.log(`  ${pc.dim("Ruta:".padEnd(labelW))} ${outPath}`);
   console.log(`  ${pc.dim("Cursos:".padEnd(labelW))} ${courseCount}`);
   console.log(`  ${pc.dim("Eventos:".padEnd(labelW))} ${eventCount}`);

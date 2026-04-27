@@ -1,8 +1,8 @@
 import type { Command } from "commander";
 import { getProfileAliases } from "../../../lib/courses/alias-store.js";
 import { ok } from "../../../lib/output/envelope.js";
-import { renderTable } from "../../../lib/output/responsive-table.js";
 import { emitJson } from "../../../lib/output/json.js";
+import { renderTable } from "../../../lib/output/responsive-table.js";
 
 interface AliasListOptions {
   json?: boolean;
@@ -28,7 +28,14 @@ export function registerAliasList(aliasesCmd: Command): void {
         console.log(
           renderTable(rows, [
             { header: "Code", get: (r) => r.code, fixed: 12, show: "always", priority: 10 },
-            { header: "Alias", get: (r) => r.alias, weight: 1, min: 10, show: "always", priority: 9 },
+            {
+              header: "Alias",
+              get: (r) => r.alias,
+              weight: 1,
+              min: 10,
+              show: "always",
+              priority: 9,
+            },
           ]),
         );
       }

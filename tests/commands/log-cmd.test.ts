@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { tailAudit } from "../../src/lib/foundation/audit-log.js";
 
 function makeAuditDir(): string {
@@ -66,8 +66,22 @@ describe("tailAudit", () => {
     writeFileSync(
       file,
       [
-        JSON.stringify({ ts: older, kind: "old", command: "old-cmd", result: "ok", tier: "T0", profile: "default" }),
-        JSON.stringify({ ts: newer, kind: "new", command: "new-cmd", result: "ok", tier: "T0", profile: "default" }),
+        JSON.stringify({
+          ts: older,
+          kind: "old",
+          command: "old-cmd",
+          result: "ok",
+          tier: "T0",
+          profile: "default",
+        }),
+        JSON.stringify({
+          ts: newer,
+          kind: "new",
+          command: "new-cmd",
+          result: "ok",
+          tier: "T0",
+          profile: "default",
+        }),
       ].join("\n") + "\n",
     );
 

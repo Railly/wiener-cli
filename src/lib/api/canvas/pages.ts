@@ -11,18 +11,20 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
 
 export async function fetchPages(courseId: number, profile = "default"): Promise<CanvasPage[]> {
   const token = await requireCanvasToken(profile);
-  const res = await canvasFetchAll<CanvasPage>(
-    `/api/v1/courses/${courseId}/pages?per_page=50`,
-    { token },
-  );
+  const res = await canvasFetchAll<CanvasPage>(`/api/v1/courses/${courseId}/pages?per_page=50`, {
+    token,
+  });
   return res.data;
 }
 
-export async function fetchPage(courseId: number, pageUrl: string, profile = "default"): Promise<CanvasPage> {
+export async function fetchPage(
+  courseId: number,
+  pageUrl: string,
+  profile = "default",
+): Promise<CanvasPage> {
   const token = await requireCanvasToken(profile);
-  const res = await canvasFetch<CanvasPage>(
-    `/api/v1/courses/${courseId}/pages/${pageUrl}`,
-    { token },
-  );
+  const res = await canvasFetch<CanvasPage>(`/api/v1/courses/${courseId}/pages/${pageUrl}`, {
+    token,
+  });
   return res.data;
 }

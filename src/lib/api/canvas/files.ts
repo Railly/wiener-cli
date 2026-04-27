@@ -10,10 +10,9 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
 }
 
 export async function fetchCourseFiles(courseId: number, token: string): Promise<CanvasFile[]> {
-  const res = await canvasFetchAll<CanvasFile>(
-    `/api/v1/courses/${courseId}/files?per_page=100`,
-    { token },
-  );
+  const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files?per_page=100`, {
+    token,
+  });
   return res.data;
 }
 
@@ -26,14 +25,16 @@ export async function fetchCourseFolders(courseId: number, token: string): Promi
 }
 
 export async function fetchFolderFiles(folderId: number, token: string): Promise<CanvasFile[]> {
-  const res = await canvasFetchAll<CanvasFile>(
-    `/api/v1/folders/${folderId}/files?per_page=100`,
-    { token },
-  );
+  const res = await canvasFetchAll<CanvasFile>(`/api/v1/folders/${folderId}/files?per_page=100`, {
+    token,
+  });
   return res.data;
 }
 
-export async function fetchFolderSubFolders(folderId: number, token: string): Promise<CanvasFolder[]> {
+export async function fetchFolderSubFolders(
+  folderId: number,
+  token: string,
+): Promise<CanvasFolder[]> {
   const res = await canvasFetchAll<CanvasFolder>(
     `/api/v1/folders/${folderId}/folders?per_page=100`,
     { token },
@@ -55,10 +56,9 @@ export async function listAllFiles(
     tokenOrProfile && tokenOrProfile.length > 20
       ? tokenOrProfile
       : await requireCanvasToken(tokenOrProfile ?? "default");
-  const res = await canvasFetchAll<CanvasFile>(
-    `/api/v1/courses/${courseId}/files?per_page=100`,
-    { token },
-  );
+  const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files?per_page=100`, {
+    token,
+  });
   return res.data;
 }
 
@@ -67,7 +67,10 @@ export async function getFile(fileId: string | number, token: string): Promise<C
   return res.data;
 }
 
-export async function buildFileTree(courseId: number, profile = "default"): Promise<FileTreeNode | null> {
+export async function buildFileTree(
+  courseId: number,
+  profile = "default",
+): Promise<FileTreeNode | null> {
   const token = await requireCanvasToken(profile);
   const allFolders = await fetchCourseFolders(courseId, token);
   if (allFolders.length === 0) return null;

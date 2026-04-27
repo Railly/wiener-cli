@@ -140,7 +140,12 @@ describe("groupBySection — composite key (same code, different baseName)", () 
   it("skips courses with no course_code without crashing", () => {
     const withNull = [
       ...duplicateCodeCourses,
-      { id: "999", name: "BAD", course_code: undefined as unknown as string, enrollment_state: "active" },
+      {
+        id: "999",
+        name: "BAD",
+        course_code: undefined as unknown as string,
+        enrollment_state: "active",
+      },
     ] as CanvasCourse[];
     expect(() => groupBySection(withNull)).not.toThrow();
   });

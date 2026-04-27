@@ -9,7 +9,10 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
   return session.token;
 }
 
-export async function fetchDiscussions(courseId: number, profile = "default"): Promise<CanvasDiscussion[]> {
+export async function fetchDiscussions(
+  courseId: number,
+  profile = "default",
+): Promise<CanvasDiscussion[]> {
   const token = await requireCanvasToken(profile);
   const res = await canvasFetchAll<CanvasDiscussion>(
     `/api/v1/courses/${courseId}/discussion_topics?per_page=50`,

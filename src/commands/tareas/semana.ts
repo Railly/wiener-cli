@@ -1,18 +1,18 @@
 // wiener tareas semana — due in next 7 days
 
 import pc from "picocolors";
+import { fetchAssignments } from "../../lib/api/canvas/assignments.js";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { getSubmissionStatus } from "../../lib/canvas/submission-status.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { ok } from "../../lib/output/envelope.js";
 import { renderSection } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 import { pMap } from "../../lib/parallel.js";
 import { isWithinDays } from "../../lib/time.js";
-import { fetchAssignments } from "../../lib/api/canvas/assignments.js";
 
 export async function runTareasSemana(opts: { json?: boolean; dias?: number }): Promise<void> {
   try {
@@ -53,9 +53,7 @@ export async function runTareasSemana(opts: { json?: boolean; dias?: number }): 
       4,
     );
 
-    const tareas = allTareas
-      .flat()
-      .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
+    const tareas = allTareas.flat().sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
 
     const data = { tareas, dias };
 

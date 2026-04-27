@@ -44,9 +44,7 @@ export function registerLog(program: Command): void {
       const cutoff = Date.now() - sinceMs;
 
       const all = tailAudit(paths.audit, limit * 3);
-      const records = all
-        .filter((r) => new Date(r.ts).getTime() >= cutoff)
-        .slice(0, limit);
+      const records = all.filter((r) => new Date(r.ts).getTime() >= cutoff).slice(0, limit);
 
       if (opts.json) {
         emitJson(ok({ records }));
@@ -67,13 +65,14 @@ export function registerLog(program: Command): void {
         const when = pc.dim(relativeDate(r.ts).padEnd(10));
         const icon = statusIcon(r.result);
         const cmd = pc.cyan(r.command.padEnd(32));
-        const metaStr = r.meta && typeof r.meta === "object"
-          ? Object.entries(r.meta)
-              .filter(([k]) => !["ts", "command", "result", "kind"].includes(k))
-              .slice(0, 2)
-              .map(([, v]) => String(v).slice(0, 20))
-              .join(" · ")
-          : "";
+        const metaStr =
+          r.meta && typeof r.meta === "object"
+            ? Object.entries(r.meta)
+                .filter(([k]) => !["ts", "command", "result", "kind"].includes(k))
+                .slice(0, 2)
+                .map(([, v]) => String(v).slice(0, 20))
+                .join(" · ")
+            : "";
         const meta = metaStr ? pc.dim(metaStr) : "";
         console.log(`  ${when}  ${icon}  ${cmd}  ${meta}`);
       }

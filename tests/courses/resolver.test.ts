@@ -133,7 +133,13 @@ describe("resolveCourse — defensive guards (null/undefined fields)", () => {
   it("skips courses with null/undefined code without crashing", () => {
     const mixed = [
       ...FIXTURE_COURSES,
-      { id: "999", code: undefined as unknown as string, name: "BAD COURSE", alias: "bad", secciones: [] },
+      {
+        id: "999",
+        code: undefined as unknown as string,
+        name: "BAD COURSE",
+        alias: "bad",
+        secciones: [],
+      },
     ] as Course[];
     expect(() => resolveCourse("FB6N1", mixed)).not.toThrow();
     const result = resolveCourse("FB6N1", mixed);

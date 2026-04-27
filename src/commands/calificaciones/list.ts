@@ -6,8 +6,8 @@ import { fetchStudentEnrollments } from "../../lib/api/canvas/enrollments.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
 import { renderSection } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
 import { emit } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 
 export async function runCalificaciones(opts: { json?: boolean; fields?: string }): Promise<void> {
   try {
@@ -94,8 +94,7 @@ export async function runCalificaciones(opts: { json?: boolean; fields?: string 
           },
           {
             header: "Nota final",
-            get: (c) =>
-              c.final_grade ?? (c.final_score !== null ? String(c.final_score) : "—"),
+            get: (c) => c.final_grade ?? (c.final_score !== null ? String(c.final_score) : "—"),
             fixed: 10,
             color: (v) => gradeColorStr(v === "—" ? null : v),
             show: "wide",

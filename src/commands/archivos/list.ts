@@ -6,12 +6,12 @@ import { fetchCourseFiles } from "../../lib/api/canvas/files.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { formatBytes, renderSection } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 import { pMap } from "../../lib/parallel.js";
 import type { SectionType } from "../../types/course.js";
 

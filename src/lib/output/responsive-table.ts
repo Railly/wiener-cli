@@ -90,7 +90,8 @@ export function renderTable<T>(rows: T[], columns: ColumnDef<T>[], opts?: Render
   }
 
   while (activeCols.length > 1) {
-    const needed = totalFixedWidth(activeCols) + totalFlexMinWidth(activeCols) + overhead(activeCols);
+    const needed =
+      totalFixedWidth(activeCols) + totalFlexMinWidth(activeCols) + overhead(activeCols);
     if (needed <= totalWidth) break;
 
     const droppable = activeCols
@@ -117,7 +118,8 @@ export function renderTable<T>(rows: T[], columns: ColumnDef<T>[], opts?: Render
     const minContent = col.min ?? Math.max(visibleLength(col.header), 4);
     const maxContent = col.max ?? Number.POSITIVE_INFINITY;
     const weight = col.weight ?? 1;
-    const shareContent = totalWeight > 0 ? Math.floor((remaining * weight) / totalWeight) : minContent;
+    const shareContent =
+      totalWeight > 0 ? Math.floor((remaining * weight) / totalWeight) : minContent;
     const contentW = Math.max(minContent, Math.min(maxContent, shareContent));
     return colWidthFromContent(contentW);
   });

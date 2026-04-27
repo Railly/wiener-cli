@@ -9,11 +9,13 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
   return session.token;
 }
 
-export async function fetchConferences(courseId: number, profile = "default"): Promise<CanvasConference[]> {
+export async function fetchConferences(
+  courseId: number,
+  profile = "default",
+): Promise<CanvasConference[]> {
   const token = await requireCanvasToken(profile);
-  const res = await canvasFetchAll<CanvasConference>(
-    `/api/v1/courses/${courseId}/conferences`,
-    { token },
-  );
+  const res = await canvasFetchAll<CanvasConference>(`/api/v1/courses/${courseId}/conferences`, {
+    token,
+  });
   return res.data;
 }

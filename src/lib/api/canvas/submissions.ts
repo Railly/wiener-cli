@@ -9,7 +9,10 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
   return session.token;
 }
 
-export async function fetchCourseSubmissions(courseId: number, profile = "default"): Promise<CanvasSubmission[]> {
+export async function fetchCourseSubmissions(
+  courseId: number,
+  profile = "default",
+): Promise<CanvasSubmission[]> {
   const token = await requireCanvasToken(profile);
   const res = await canvasFetchAll<CanvasSubmission>(
     `/api/v1/courses/${courseId}/students/submissions?student_ids[]=self&include[]=assignment&per_page=100`,

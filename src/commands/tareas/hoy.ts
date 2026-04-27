@@ -7,11 +7,11 @@ import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { getSubmissionStatus } from "../../lib/canvas/submission-status.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { ok } from "../../lib/output/envelope.js";
 import { renderSection } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 import { pMap } from "../../lib/parallel.js";
 import { isPast, isToday } from "../../lib/time.js";
 

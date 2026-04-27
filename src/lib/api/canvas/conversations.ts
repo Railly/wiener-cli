@@ -25,7 +25,10 @@ export async function fetchConversations(opts?: {
   return res.data;
 }
 
-export async function fetchConversation(id: number, profile = "default"): Promise<CanvasConversation> {
+export async function fetchConversation(
+  id: number,
+  profile = "default",
+): Promise<CanvasConversation> {
   const token = await requireToken(profile);
   const res = await canvasFetch<CanvasConversation>(`/api/v1/conversations/${id}`, { token });
   return res.data;

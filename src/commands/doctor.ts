@@ -3,9 +3,9 @@ import { platform } from "node:os";
 import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { emitNextSteps } from "../lib/agent/next-steps.js";
 import { getSelf } from "../lib/api/canvas/users.js";
 import { loadCanvasSession, loadIntranetSession } from "../lib/auth/store.js";
-import { emitNextSteps } from "../lib/agent/next-steps.js";
 import { getProfileDir } from "../lib/env.js";
 import type { WienerError } from "../lib/errors.js";
 import { ok } from "../lib/output/envelope.js";
@@ -31,11 +31,7 @@ interface DoctorOptions {
   check?: boolean;
 }
 
-async function checkReachable(
-  url: string,
-  name: string,
-  label: string,
-): Promise<DoctorCheck> {
+async function checkReachable(url: string, name: string, label: string): Promise<DoctorCheck> {
   const start = Date.now();
   try {
     const resp = await fetch(url, {
@@ -228,8 +224,16 @@ export function registerDoctor(program: Command): void {
       const profile = opts.profile ?? "default";
 
       const connectivityChecks: DoctorCheck[] = [
-        await checkReachable("https://intranet.uwiener.edu.pe/sso.asp", "intranet-reachable", "intranet.uwiener.edu.pe"),
-        await checkReachable("https://campus.uwiener.edu.pe/api/v1/users/self", "canvas-reachable", "campus.uwiener.edu.pe"),
+        await checkReachable(
+          "https://intranet.uwiener.edu.pe/sso.asp",
+          "intranet-reachable",
+          "intranet.uwiener.edu.pe",
+        ),
+        await checkReachable(
+          "https://campus.uwiener.edu.pe/api/v1/users/self",
+          "canvas-reachable",
+          "campus.uwiener.edu.pe",
+        ),
       ];
 
       const sessionChecks: DoctorCheck[] = [

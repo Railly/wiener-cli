@@ -1,8 +1,8 @@
 import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { ensureConfig } from "../lib/config.js";
 import { emitNextSteps } from "../lib/agent/next-steps.js";
+import { ensureConfig } from "../lib/config.js";
 import { getConfigDir } from "../lib/env.js";
 import { getWienerPaths } from "../lib/foundation/xdg-paths.js";
 import { ok } from "../lib/output/envelope.js";

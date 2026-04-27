@@ -12,12 +12,7 @@ export function parseSectionFromName(name: string): { baseName: string; seccion:
 }
 
 function normalizeBaseName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 export function groupBySection(

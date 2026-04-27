@@ -42,8 +42,10 @@ describe("mergeIcs", () => {
   });
 
   it("merges VEVENT blocks from multiple calendars", () => {
-    const cal1 = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Event A\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
-    const cal2 = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Event B\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    const cal1 =
+      "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Event A\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    const cal2 =
+      "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Event B\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     const merged = mergeIcs([cal1, cal2]);
     const count = (merged.match(/BEGIN:VEVENT/g) ?? []).length;
     expect(count).toBe(2);
@@ -52,7 +54,8 @@ describe("mergeIcs", () => {
   });
 
   it("includes required ICS headers when merging calendars", () => {
-    const cal = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    const cal =
+      "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     const merged = mergeIcs([cal]);
     expect(merged).toContain("VERSION:2.0");
     expect(merged).toContain("PRODID:-//wiener-cli//EN");

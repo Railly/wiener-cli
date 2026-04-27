@@ -1,7 +1,6 @@
 import type { Command } from "commander";
 import pc from "picocolors";
 import { ok } from "../lib/output/envelope.js";
-import { printTable } from "../lib/output/human.js";
 import { emitJson } from "../lib/output/json.js";
 
 type CommandGroup = "auth" | "day" | "academic" | "materials" | "ops";
@@ -83,8 +82,12 @@ const SCHEMAS: Record<
 > = {
   "auth login": {
     description: "Autenticar con el portal intranet",
-    options: { "--usuario <u>": "Código de alumno", "--pass <p>": "Contraseña", "--perfil <A|D|P>": "Perfil" },
-    returns: { "ok": "boolean", "perfil": "string", "codigo": "string", "expiresAt": "string?" },
+    options: {
+      "--usuario <u>": "Código de alumno",
+      "--pass <p>": "Contraseña",
+      "--perfil <A|D|P>": "Perfil",
+    },
+    returns: { ok: "boolean", perfil: "string", codigo: "string", expiresAt: "string?" },
     trust: "T0",
   },
   "auth status": {
@@ -99,69 +102,90 @@ const SCHEMAS: Record<
   },
   "auth canvas set-token": {
     description: "Registrar un PAT de Canvas",
-    args: { "pat": "string" },
-    returns: { "ok": "boolean", "user.id": "string", "user.name": "string" },
+    args: { pat: "string" },
+    returns: { ok: "boolean", "user.id": "string", "user.name": "string" },
     trust: "T0",
   },
   cursos: {
     description: "Listar cursos activos del periodo",
-    returns: { "cursos": "array [{ code, name, alias, secciones[], term?, role? }]" },
+    returns: { cursos: "array [{ code, name, alias, secciones[], term?, role? }]" },
     trust: "T0",
   },
   notas: {
     description: "Notas oficiales del periodo actual (intranet)",
     options: { "--periodo <code>": "ID del periodo (default: actual)" },
     returns: {
-      "periodo": "string — ej. \"2026-I\"",
-      "alumno": "object { codigo, carrera, ciclo, nombre }",
-      "ponderado_acumulado": "number",
-      "ponderado_historico": "number",
-      "cursos": "array [{ codigo, nombre, ciclo, creditos, nota_final, estado, modalidad }]",
+      periodo: 'string — ej. "2026-I"',
+      alumno: "object { codigo, carrera, ciclo, nombre }",
+      ponderado_acumulado: "number",
+      ponderado_historico: "number",
+      cursos: "array [{ codigo, nombre, ciclo, creditos, nota_final, estado, modalidad }]",
     },
     trust: "T0",
   },
   tareas: {
     description: "Tareas y assignments de Canvas",
     args: { "[ref]": "Referencia de curso (opcional)" },
-    returns: { "tareas": "array [{ id, name, due_at, points_possible, submitted, curso }]" },
+    returns: { tareas: "array [{ id, name, due_at, points_possible, submitted, curso }]" },
     trust: "T0",
   },
   "tareas submit": {
     description: "Entregar una tarea a Canvas (requiere confirmación)",
-    args: { "ref": "Referencia de curso", "assignment-ref": "ID o nombre de tarea", "[files...]": "Archivos a subir" },
-    options: { "--type <type>": "online_upload|online_text_entry|online_url|auto", "--yes": "Skip prompt" },
-    returns: { "ok": "boolean", "submission.submitted_at": "string", "submission.attempt": "number" },
+    args: {
+      ref: "Referencia de curso",
+      "assignment-ref": "ID o nombre de tarea",
+      "[files...]": "Archivos a subir",
+    },
+    options: {
+      "--type <type>": "online_upload|online_text_entry|online_url|auto",
+      "--yes": "Skip prompt",
+    },
+    returns: { ok: "boolean", "submission.submitted_at": "string", "submission.attempt": "number" },
     trust: "T2",
   },
   doctor: {
     description: "Diagnóstico de salud del CLI",
-    returns: { "ok": "boolean", "checks": "array [{ name, ok, status, detail }]" },
+    returns: { ok: "boolean", checks: "array [{ name, ok, status, detail }]" },
     trust: "T0",
   },
   inbox: {
     description: "Mensajes Canvas (bandeja de entrada)",
     options: { "--no-leidos": "Solo no leídos", "--limit <n>": "Máx filas (default: 20)" },
-    returns: { "total": "number", "unread": "number", "conversaciones": "array [{ id, from, subject, unread, count }]" },
+    returns: {
+      total: "number",
+      unread: "number",
+      conversaciones: "array [{ id, from, subject, unread, count }]",
+    },
     trust: "T0",
   },
   calendario: {
     description: "Calendario de eventos y tareas Canvas",
-    options: { "--dias <n>": "Días a mostrar (default: 7)", "--ics": "Exportar ICS", "--out <path>": "Ruta de salida" },
-    returns: { "eventos": "array [{ fecha, tipo, titulo, curso, url }]", "dias": "number" },
+    options: {
+      "--dias <n>": "Días a mostrar (default: 7)",
+      "--ics": "Exportar ICS",
+      "--out <path>": "Ruta de salida",
+    },
+    returns: { eventos: "array [{ fecha, tipo, titulo, curso, url }]", dias: "number" },
     trust: "T0",
   },
   "archivos download": {
     description: "Descargar un archivo Canvas (T2 para >50 MB)",
     args: { "file-id": "Canvas file ID" },
     options: { "--out <path>": "Ruta destino", "--force": "Sobreescribir", "--yes": "Skip prompt" },
-    returns: { "ok": "boolean", "path": "string", "size": "number", "duration_ms": "number" },
+    returns: { ok: "boolean", path: "string", size: "number", duration_ms: "number" },
     trust: "T0/T2",
   },
   "archivos sync": {
     description: "Sync todos los archivos de un curso (T2)",
     args: { "course-id": "Canvas course ID o ref" },
     options: { "--dir <path>": "Directorio destino", "--max-size <mb>": "Límite MB" },
-    returns: { "ok": "boolean", "total": "number", "downloaded": "number", "skipped": "number", "failed": "number" },
+    returns: {
+      ok: "boolean",
+      total: "number",
+      downloaded: "number",
+      skipped: "number",
+      failed: "number",
+    },
     trust: "T2",
   },
 };
@@ -205,12 +229,16 @@ function printHumanSchema(commandArg: string): void {
   }
 
   if (schema?.trust) {
-    console.log(`${pc.bold("Trust:")} ${schema.trust === "T2" ? pc.yellow(schema.trust) : pc.green(schema.trust)} ${pc.dim(schema.trust === "T2" ? "(escritura, requiere confirmación)" : "(lectura, sin confirmación)")}`);
+    console.log(
+      `${pc.bold("Trust:")} ${schema.trust === "T2" ? pc.yellow(schema.trust) : pc.green(schema.trust)} ${pc.dim(schema.trust === "T2" ? "(escritura, requiere confirmación)" : "(lectura, sin confirmación)")}`,
+    );
     console.log();
   }
 
   if (!schema) {
-    console.log(pc.dim(`Schema no disponible para "wiener ${commandArg}". Usa --list para ver todos.`));
+    console.log(
+      pc.dim(`Schema no disponible para "wiener ${commandArg}". Usa --list para ver todos.`),
+    );
     console.log();
   }
 }
@@ -229,7 +257,10 @@ export function registerSchema(program: Command): void {
         }
 
         console.log(`\n${pc.bold("Comandos disponibles — wiener-cli")}\n`);
-        for (const [group, cmds] of Object.entries(COMMANDS_BY_GROUP) as [CommandGroup, string[]][]) {
+        for (const [group, cmds] of Object.entries(COMMANDS_BY_GROUP) as [
+          CommandGroup,
+          string[],
+        ][]) {
           console.log(pc.bold(`${GROUP_LABELS[group]}`));
           for (const cmd of cmds) {
             const schema = SCHEMAS[cmd];
@@ -264,8 +295,13 @@ export function registerSchema(program: Command): void {
 
       printHumanSchema(commandArg);
 
-      console.log(pc.dim("→ wiener schema --list") + pc.dim("                  todos los comandos"));
-      console.log(pc.dim(`→ wiener schema --json ${commandArg}`) + pc.dim("         schema crudo (para agentes)"));
+      console.log(
+        pc.dim("→ wiener schema --list") + pc.dim("                  todos los comandos"),
+      );
+      console.log(
+        pc.dim(`→ wiener schema --json ${commandArg}`) +
+          pc.dim("         schema crudo (para agentes)"),
+      );
       console.log();
 
       process.exit(0);

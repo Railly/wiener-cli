@@ -3,11 +3,11 @@
 import pc from "picocolors";
 import { fetchGlobalAnnouncements } from "../../lib/api/canvas/announcements.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { ok } from "../../lib/output/envelope.js";
 import { renderSection, truncateHtml } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { emit } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 
 export async function runAnunciosGlobales(opts: {
   json?: boolean;

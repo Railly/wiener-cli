@@ -7,8 +7,8 @@ import { groupBySection } from "../../lib/courses/grouping.js";
 import type { WienerError } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { printError } from "../../lib/output/human.js";
-import { renderTable } from "../../lib/output/responsive-table.js";
 import { emitJson } from "../../lib/output/json.js";
+import { renderTable } from "../../lib/output/responsive-table.js";
 
 interface FavoritosOptions {
   json?: boolean;

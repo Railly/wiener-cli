@@ -1,10 +1,10 @@
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import pc from "picocolors";
+import { emitNextSteps } from "../../lib/agent/next-steps.ts";
 import { getFile } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
-import { emitNextSteps } from "../../lib/agent/next-steps.ts";
 import { WienerError, isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
@@ -251,7 +251,11 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
       console.log(`  ${pc.dim("Duración:".padEnd(labelW))} ${(durationMs / 1000).toFixed(1)}s`);
       emitNextSteps([
         { command: `open "${outPath}"`, description: "abrir el archivo" },
-        { command: `wiener archivos sync <ref>`, description: "descargar todo el curso", optional: true },
+        {
+          command: `wiener archivos sync <ref>`,
+          description: "descargar todo el curso",
+          optional: true,
+        },
       ]);
     }
   } catch (e) {

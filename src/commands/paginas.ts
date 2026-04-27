@@ -6,11 +6,11 @@ import { fetchPage, fetchPages } from "../lib/api/canvas/pages.js";
 import { groupBySection } from "../lib/courses/grouping.js";
 import { resolveCourse } from "../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../lib/errors.js";
+import { formatDueDate } from "../lib/format/date.js";
 import { err, ok } from "../lib/output/envelope.js";
 import { htmlToText, renderSection } from "../lib/output/human.js";
-import { renderTable } from "../lib/output/responsive-table.js";
-import { formatDueDate } from "../lib/format/date.js";
 import { emit } from "../lib/output/json.js";
+import { renderTable } from "../lib/output/responsive-table.js";
 import { pMap } from "../lib/parallel.js";
 import type { SectionType } from "../types/course.js";
 
@@ -129,8 +129,7 @@ export async function runPaginas(
           ...baseColumns,
           {
             header: "Cuerpo",
-            get: (p: (typeof paginas)[number]) =>
-              p.body ? `${p.body.slice(0, 100)}…` : "—",
+            get: (p: (typeof paginas)[number]) => (p.body ? `${p.body.slice(0, 100)}…` : "—"),
             weight: 3,
             min: 20,
             show: "always" as const,

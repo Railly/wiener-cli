@@ -69,7 +69,10 @@ export async function runTareasInfo(
       return;
     }
 
-    const assignment = await fetchAssignment(Number(primarySection?.id ?? course.secciones[0]?.id), aid);
+    const assignment = await fetchAssignment(
+      Number(primarySection?.id ?? course.secciones[0]?.id),
+      aid,
+    );
     const sub = assignment.submission;
 
     const data = {

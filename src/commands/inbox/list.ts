@@ -1,8 +1,8 @@
 // wiener inbox [--no-leidos] [--limit N]
 
 import pc from "picocolors";
-import { fetchConversations } from "../../lib/api/canvas/conversations.js";
 import { emitNextSteps } from "../../lib/agent/next-steps.js";
+import { fetchConversations } from "../../lib/api/canvas/conversations.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
 import { ok } from "../../lib/output/envelope.js";
 import { emit } from "../../lib/output/json.js";

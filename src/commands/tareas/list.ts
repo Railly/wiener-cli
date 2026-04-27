@@ -3,18 +3,18 @@
 
 import pc from "picocolors";
 import { fetchAssignments } from "../../lib/api/canvas/assignments.js";
-import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { fetchTodoItems, fetchUpcomingEvents } from "../../lib/api/canvas/calendar.js";
+import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
 import { getSubmissionStatus } from "../../lib/canvas/submission-status.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
 import { toErrorEnvelope } from "../../lib/errors.js";
+import { formatDueDate } from "../../lib/format/date.js";
 import { err, ok } from "../../lib/output/envelope.js";
 import { projectFields } from "../../lib/output/fields.js";
 import { renderSection } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
 import { renderTable } from "../../lib/output/responsive-table.js";
-import { formatDueDate } from "../../lib/format/date.js";
 import { pMap } from "../../lib/parallel.js";
 import { isInteractive } from "../../lib/tty.js";
 import type { SectionType } from "../../types/course.js";
@@ -203,8 +203,7 @@ export async function runTareasList(opts: {
           },
           {
             header: "Estado",
-            get: (t) =>
-              t.graded ? "calificado" : t.submitted ? "entregado" : "pendiente",
+            get: (t) => (t.graded ? "calificado" : t.submitted ? "entregado" : "pendiente"),
             fixed: 11,
             color: (v) =>
               v === "calificado"

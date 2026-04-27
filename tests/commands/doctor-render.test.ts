@@ -33,9 +33,7 @@ describe("doctor check logic", () => {
   });
 
   it("allOk returns false on warn", () => {
-    const checks: DoctorCheck[] = [
-      { name: "a", label: "A", status: "warn", detail: "degraded" },
-    ];
+    const checks: DoctorCheck[] = [{ name: "a", label: "A", status: "warn", detail: "degraded" }];
     expect(allOk(checks)).toBe(false);
   });
 
