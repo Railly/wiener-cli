@@ -6,13 +6,14 @@ import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
 import { groupBySection } from "../../lib/courses/grouping.ts";
 import { resolveCourse } from "../../lib/courses/resolver.ts";
-import { WienerError, isWienerLike, toErrorEnvelope } from "../../lib/errors.ts";
+import { CanvasServerError, WienerError, isWienerLike, toErrorEnvelope } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
 import type { SectionType } from "../../types/course.ts";
 import {
+  formatDegradedDryRun,
   formatPreview,
   pickSubmissionType,
   resolveAssignment,
@@ -131,7 +132,55 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
       targetCourseId = Number(secciones[0]?.id ?? 0);
     }
 
-    const assignment = await resolveAssignment(targetCourseId, opts.assignmentRef);
+    let assignment: Awaited<ReturnType<typeof resolveAssignment>> | null = null;
+    let canvasMetaDegraded = false;
+
+    try {
+      assignment = await resolveAssignment(targetCourseId, opts.assignmentRef);
+    } catch (resolveErr) {
+      if (resolveErr instanceof CanvasServerError && opts.dryRun) {
+        canvasMetaDegraded = true;
+      } else {
+        throw resolveErr;
+      }
+    }
+
+    if (canvasMetaDegraded) {
+      const fileNames = opts.files.map((f) => {
+        const parts = f.split(/[/\\]/);
+        return parts[parts.length - 1] ?? f;
+      });
+      const degradedText = formatDegradedDryRun({
+        courseCode: resolvedCourse.code,
+        courseName: resolvedCourse.name,
+        assignmentRef: opts.assignmentRef,
+        fileNames,
+        courseRef: opts.courseRef,
+      });
+      if (opts.json) {
+        printJson(
+          successEnvelope(
+            {
+              dryRun: true,
+              degraded: true,
+              courseCode: resolvedCourse.code,
+              courseId: targetCourseId,
+              assignmentRef: opts.assignmentRef,
+              files: opts.files,
+              canvasMetaAvailable: false,
+            },
+            { duration_ms: Date.now() - startMs, from_cache: false },
+          ),
+        );
+      } else {
+        printLine(degradedText);
+      }
+      return;
+    }
+
+    if (!assignment) {
+      throw new WienerError("assignment-not-found", `Could not resolve assignment "${opts.assignmentRef}"`);
+    }
 
     const now = new Date();
 
@@ -155,9 +204,29 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
     if (allowedAttempts !== null && allowedAttempts > 0 && currentAttempt >= allowedAttempts) {
       throw new WienerError(
         "submission-no-attempts",
-        `No attempts remaining for "${assignment.name}" (${currentAttempt}/${allowedAttempts} used)`,
-        { hint: "Contact your instructor if you need an extension." },
+        `Ya entregaste esta tarea (intento ${currentAttempt} de ${allowedAttempts}). No se permiten más intentos.`,
+        { hint: "Si necesitas re-entregar, contacta al profesor." },
       );
+    }
+
+    const alreadySubmitted =
+      existingSubmission != null && existingSubmission.workflow_state !== "unsubmitted";
+
+    if (alreadySubmitted && !opts.yes && !opts.noInput && !opts.dryRun && !opts.json) {
+      const attemptStr =
+        allowedAttempts !== null && allowedAttempts > 0
+          ? `intento ${currentAttempt} de ${allowedAttempts}`
+          : `intento ${currentAttempt}`;
+      const { confirm } = await import("@clack/prompts");
+      const ok = await confirm({
+        message: `Ya entregaste esta tarea (${attemptStr}). ¿Quieres entregar de nuevo? (sobreescribirá el intento previo)`,
+        initialValue: false,
+      });
+      if (!ok) {
+        printLine(pc.dim("Cancelado."));
+        process.exit(0);
+        return;
+      }
     }
 
     const isLate = assignment.due_at != null && new Date(assignment.due_at) < now;
@@ -165,8 +234,6 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
       allowedAttempts !== null && allowedAttempts > 0
         ? currentAttempt + 1 >= allowedAttempts
         : false;
-    const alreadySubmitted =
-      existingSubmission != null && existingSubmission.workflow_state !== "unsubmitted";
 
     const submissionType = pickSubmissionType(assignment, opts.type);
 
@@ -393,7 +460,13 @@ export async function runTareasSubmit(opts: TareasSubmitOptions): Promise<void> 
     });
 
     if (opts.json) {
-      printJson(toErrorEnvelope(e));
+      printJson(
+        toErrorEnvelope(e, {
+          courseRef: opts.courseRef,
+          assignmentRef: opts.assignmentRef,
+          step: "fetch-assignment-detail",
+        }),
+      );
       return;
     }
 

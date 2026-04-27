@@ -149,6 +149,44 @@ export function validateUploads(assignment: Assignment, filePaths: string[]): Up
   return { valid: true, files };
 }
 
+export interface DegradedDryRunData {
+  courseCode: string;
+  courseName: string;
+  assignmentRef: string;
+  fileNames: string[];
+  courseRef: string;
+}
+
+export function formatDegradedDryRun(data: DegradedDryRunData): string {
+  const lines: string[] = [
+    "wiener tareas submit — PREVIEW",
+    "─".repeat(40),
+    `Curso:        ${data.courseCode} · ${data.courseName}`,
+    `Tarea ID:     ${data.assignmentRef}`,
+    `Tipo:         online_upload (asumido)`,
+  ];
+
+  if (data.fileNames.length === 1) {
+    lines.push(`Archivos:     ${data.fileNames[0]}`);
+  } else if (data.fileNames.length > 1) {
+    lines.push(`Archivos:     ${data.fileNames.length} archivos`);
+    for (const name of data.fileNames) {
+      lines.push(`              • ${name}`);
+    }
+  }
+
+  lines.push("");
+  lines.push(
+    "ADVERTENCIA: Metadata Canvas no disponible (5xx) — checks omitidos:",
+  );
+  lines.push("  vencimiento, intentos restantes, formato permitido");
+  lines.push("");
+  lines.push(`Para subir igual: agrega --yes (asumes el riesgo de formato/intentos)`);
+  lines.push(`Para abrir manual: wiener cursos abrir ${data.courseRef}`);
+
+  return lines.join("\n");
+}
+
 export function formatRelativeTime(isoDate: string | null): string {
   if (!isoDate) return "—";
   const now = Date.now();

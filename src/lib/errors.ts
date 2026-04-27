@@ -4,6 +4,7 @@ export type WienerErrorCode =
   | "auth-invalid-credentials"
   | "canvas-not-configured"
   | "canvas-token-invalid"
+  | "canvas-server-error"
   | "wiener-restricted-endpoint"
   | "wiener-feature-disabled"
   | "course-not-found"
@@ -27,6 +28,7 @@ export const ERROR_EXIT_CODES: Record<WienerErrorCode, number> = {
   "auth-invalid-credentials": 1,
   "canvas-not-configured": 1,
   "canvas-token-invalid": 1,
+  "canvas-server-error": 1,
   "wiener-restricted-endpoint": 1,
   "wiener-feature-disabled": 1,
   "course-not-found": 1,
@@ -188,6 +190,31 @@ export class NotImplementedError extends WienerError {
   }
 }
 
+export class CanvasServerError extends WienerError {
+  readonly status: number;
+  readonly path: string;
+  constructor(status: number, path: string) {
+    super(
+      "canvas-server-error",
+      `Canvas devolvió ${status} (problema del servidor de Wiener, no tuyo)`,
+      {
+        hint: `Reintenta en unos minutos. Si persiste, abre la tarea manualmente: wiener cursos abrir <ref>`,
+        details: { status, path },
+      },
+    );
+    this.status = status;
+    this.path = path;
+  }
+}
+
+export function is5xxError(e: unknown): boolean {
+  if (e instanceof CanvasServerError) return true;
+  if (e instanceof Error) {
+    return /status [5]\d\d/.test(e.message) || /5\d\d/.test(e.message);
+  }
+  return false;
+}
+
 export function isWienerError(e: unknown): e is WienerError {
   return e instanceof WienerError;
 }
@@ -201,10 +228,58 @@ export function isWienerLike(e: unknown): e is WienerError {
   );
 }
 
-export function toErrorEnvelope(e: unknown): {
+export interface NextStep {
+  command: string;
+  description: string;
+}
+
+export function toErrorEnvelope(
+  e: unknown,
+  context?: { step?: string; courseRef?: string; assignmentRef?: string },
+): {
   ok: false;
-  error: { code: string; message: string; hint?: string; details?: Record<string, unknown> };
+  error: {
+    code: string;
+    message: string;
+    hint?: string;
+    details?: Record<string, unknown>;
+    next_steps?: NextStep[];
+  };
 } {
+  if (e instanceof CanvasServerError) {
+    const details: Record<string, unknown> = {
+      status: e.status,
+      url: e.path,
+      retries_attempted: 2,
+    };
+    if (context?.step) details.step = context.step;
+    if (context?.assignmentRef) details.assignment_id = context.assignmentRef;
+    if (context?.courseRef) details.course = context.courseRef;
+
+    const courseArg = context?.courseRef ?? "<ref>";
+    const assignmentArg = context?.assignmentRef ?? "<id>";
+
+    return {
+      ok: false,
+      error: {
+        code: e.code,
+        message: e.message,
+        hint: e.hint,
+        details,
+        next_steps: [
+          {
+            command: `wiener cursos abrir ${courseArg}`,
+            description: "abrir Canvas web para subir manual",
+          },
+          {
+            command: `wiener tareas submit ${courseArg} ${assignmentArg} ./file.pdf --yes`,
+            description: "intentar upload (omite preview)",
+          },
+        ],
+      },
+    };
+  }
+
   if (isWienerError(e)) {
     return {
       ok: false,
