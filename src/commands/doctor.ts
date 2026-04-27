@@ -6,6 +6,8 @@ import pc from "picocolors";
 import { emitNextSteps } from "../lib/agent/next-steps.js";
 import { getSelf } from "../lib/api/canvas/users.js";
 import { loadCanvasSession, loadIntranetSession } from "../lib/auth/store.js";
+import type { CapabilityMap, CapabilityStatus } from "../lib/canvas/probe-capabilities.js";
+import { probeCapabilities } from "../lib/canvas/probe-capabilities.js";
 import { getProfileDir } from "../lib/env.js";
 import type { WienerError } from "../lib/errors.js";
 import { ok } from "../lib/output/envelope.js";
@@ -187,8 +189,107 @@ function statusIcon(status: CheckStatus): string {
   return pc.dim("-");
 }
 
+function capIcon(status: CapabilityStatus): string {
+  if (status === "ok") return pc.green("✓");
+  if (status === "restricted") return pc.red("✗");
+  if (status === "disabled") return pc.dim("-");
+  return pc.yellow("?");
+}
+
+function printCapabilities(caps: CapabilityMap): void {
+  console.log(pc.bold("Capabilidades de la API Canvas"));
+
+  const rows: Array<{
+    label: string;
+    status: CapabilityStatus;
+    note: string;
+    workaround?: string;
+  }> = [
+    {
+      label: "cursos, tareas, calificaciones, módulos",
+      status: "ok",
+      note: "accesibles",
+    },
+    {
+      label: "anuncios",
+      status: caps.anuncios === "ok" ? "ok" : caps.anuncios === "restricted" ? "restricted" : "ok",
+      note: caps.anuncios === "restricted" ? "restringido" : "accesible (endpoint global)",
+    },
+    {
+      label: "syllabus (via course details)",
+      status: caps.syllabus === "restricted" ? "restricted" : "ok",
+      note: caps.syllabus === "restricted" ? "restringido" : "accesible",
+    },
+    {
+      label: "archivos directos (/files)",
+      status: caps.files,
+      note:
+        caps.files === "restricted"
+          ? "restringido por Wiener"
+          : caps.files === "ok"
+            ? "accesible"
+            : "desconocido",
+      workaround:
+        caps.files === "restricted"
+          ? "wiener archivos <ref> usa módulos automáticamente"
+          : undefined,
+    },
+    {
+      label: "rubrics",
+      status: caps.rubrics,
+      note:
+        caps.rubrics === "restricted"
+          ? "restringidos"
+          : caps.rubrics === "ok"
+            ? "accesibles"
+            : "desconocido",
+      workaround:
+        caps.rubrics === "restricted"
+          ? "wiener tareas info omite rubric automáticamente"
+          : undefined,
+    },
+    {
+      label: "pages/quizzes/conferences",
+      status: "disabled",
+      note: "feature deshabilitada (per curso)",
+    },
+  ];
+
+  for (const row of rows) {
+    const icon = capIcon(row.status);
+    const label = pad(pc.dim(row.label), 45);
+    const noteColor =
+      row.status === "restricted"
+        ? pc.red(row.note)
+        : row.status === "disabled"
+          ? pc.dim(row.note)
+          : pc.dim(row.note);
+    console.log(`  ${icon}  ${label}  ${noteColor}`);
+    if (row.workaround) {
+      console.log(`     ${pc.dim("→ workaround:")} ${pc.cyan(row.workaround)}`);
+    }
+  }
+  console.log();
+}
+
+function stripAnsi(s: string): string {
+  let out = "";
+  let i = 0;
+  while (i < s.length) {
+    const code = s.charCodeAt(i);
+    if (code === 0x1b && s[i + 1] === "[") {
+      i += 2;
+      while (i < s.length && !(s.charCodeAt(i) >= 0x40 && s.charCodeAt(i) <= 0x7e)) i++;
+      i++;
+    } else {
+      out += s[i++];
+    }
+  }
+  return out;
+}
+
 function pad(s: string, width: number): string {
-  const visible = s.replace(/\x1b\[[0-9;]*m/g, "");
+  const visible = stripAnsi(s);
   const diff = width - visible.length;
   return diff > 0 ? `${s}${" ".repeat(diff)}` : s;
 }
@@ -252,12 +353,28 @@ export function registerDoctor(program: Command): void {
       const allChecks = [...connectivityChecks, ...sessionChecks, ...healthChecks, ...envChecks];
       const allOk = allChecks.every((c) => c.status === "ok" || c.status === "skip");
 
+      let capabilities: CapabilityMap | null = null;
+      const canvasConfigured = sessionChecks.some(
+        (c) => c.name === "canvas-pat-valid" && c.status === "ok",
+      );
+      if (canvasConfigured) {
+        try {
+          capabilities = await probeCapabilities(profile);
+        } catch {
+          // non-fatal
+        }
+      }
+
       const dir = getProfileDir(profile);
       try {
         mkdirSync(dir, { recursive: true });
         writeFileSync(
           path.join(dir, "doctor-last.json"),
-          JSON.stringify({ run_at: new Date().toISOString(), checks: allChecks }, null, 2),
+          JSON.stringify(
+            { run_at: new Date().toISOString(), checks: allChecks, capabilities },
+            null,
+            2,
+          ),
           "utf-8",
         );
       } catch {
@@ -272,6 +389,7 @@ export function registerDoctor(program: Command): void {
           status: c.status,
           detail: c.detail,
         })),
+        capabilities,
       };
 
       if (opts.json) {
@@ -287,6 +405,7 @@ export function registerDoctor(program: Command): void {
       printSection("Sesiones", sessionChecks);
       if (healthChecks.length > 0) printSection("Salud", healthChecks);
       printSection("Entorno", envChecks);
+      if (capabilities) printCapabilities(capabilities);
 
       if (allOk) {
         console.log(`${pc.green("Todo OK ✓")} — el CLI está listo para usarse.`);
