@@ -12,27 +12,24 @@ mock.module("../../src/lib/auth/store.ts", () => ({
   loadIntranetSession: () => null,
 }));
 
-// Shared mock file list
-function buildFiles(count: number, sizeMb: number) {
+// Shared mock module file items (replaces listAllFiles — Wiener restricts /files)
+function buildModuleItems(count: number) {
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
-    display_name: `file-${i + 1}.pdf`,
-    filename: `file-${i + 1}.pdf`,
-    content_type: "application/pdf",
-    url: `https://example.com/files/${i + 1}`,
-    size: sizeMb * 1024 * 1024,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    modified_at: new Date().toISOString(),
-    folder_id: 1,
+    title: `file-${i + 1}.pdf`,
+    url: `https://campus.uwiener.edu.pe/files/${i + 1}/download`,
+    module_id: 1,
+    module_name: "SEMANA 01",
+    content_id: 100 + i,
   }));
 }
 
-let mockFileList = buildFiles(5, 10); // 5 files × 10 MB = 50 MB by default
+let mockModuleItems = buildModuleItems(5);
 
-mock.module("../../src/lib/api/canvas/files.ts", () => ({
-  listAllFiles: async () => mockFileList,
-  getFile: async () => mockFileList[0],
+mock.module("../../src/lib/api/canvas/modules.ts", () => ({
+  fetchModuleFileItems: async () => mockModuleItems,
+  fetchModules: async () => [],
+  getModulesWithItems: async () => [],
 }));
 
 const confirmCalls: Array<{ action: string; opts: { yes: boolean; dryRun: boolean } }> = [];
@@ -56,7 +53,6 @@ mock.module("../../src/lib/safety/confirm.ts", () => ({
     confirmCalls.push({ action, opts });
     if (opts.dryRun) return "dry-run";
     if (opts.yes) return "proceed";
-    // Throw an object that passes the duck-type check
     throw new MockWienerError(
       "validation-error",
       "T2 action requires confirmation",
@@ -64,10 +60,6 @@ mock.module("../../src/lib/safety/confirm.ts", () => ({
     );
   },
 }));
-
-// Note: No node:fs mock here — it causes parallel test isolation issues.
-// Tests that need actual file ops use real temp dirs.
-// Tests that only check logic use dry-run or abort paths.
 
 const capturedOutput: string[] = [];
 const capturedErrors: string[] = [];
@@ -112,41 +104,35 @@ function baseOpts(overrides: Partial<Parameters<typeof runArchivosSync>[0]> = {}
   };
 }
 
-describe("archivos sync", () => {
+describe("archivos sync (modules-based)", () => {
   beforeEach(() => {
     capturedOutput.length = 0;
     capturedErrors.length = 0;
     confirmCalls.length = 0;
-    mockFileList = buildFiles(5, 10); // reset
+    mockModuleItems = buildModuleItems(5);
   });
 
-  it("dry-run returns manifest with correct totalCount and totalSize", async () => {
+  it("dry-run returns manifest with correct totalCount", async () => {
     await runArchivosSync(baseOpts({ dryRun: true }));
     expect(capturedOutput).toHaveLength(1);
     const envelope = JSON.parse(capturedOutput[0]);
     expect(envelope.ok).toBe(true);
     expect(envelope.data.dryRun).toBe(true);
     expect(envelope.data.manifest.totalCount).toBe(5);
-    expect(envelope.data.manifest.totalSize).toBe(5 * 10 * 1024 * 1024);
     expect(envelope.data.manifest.files).toHaveLength(5);
   });
 
-  it("dry-run manifest files include id, path, and size", async () => {
+  it("dry-run manifest files include id and path", async () => {
     await runArchivosSync(baseOpts({ dryRun: true }));
     const envelope = JSON.parse(capturedOutput[0]);
     const firstFile = envelope.data.manifest.files[0];
     expect(firstFile).toHaveProperty("id");
     expect(firstFile).toHaveProperty("path");
-    expect(firstFile).toHaveProperty("size");
     expect(typeof firstFile.id).toBe("number");
     expect(typeof firstFile.path).toBe("string");
-    expect(typeof firstFile.size).toBe("number");
   });
 
-  it("without --yes and non-interactive: validation-error with hint", async () => {
-    // The confirmT2 mock throws when !yes && !dryRun.
-    // runArchivosSync catches WienerError-like objects and calls process.exit(1).
-    // Since process.exit(1) itself terminates, we spy on it OR catch the re-throw.
+  it("without --yes and non-interactive: validation-error", async () => {
     let exitCode: number | undefined;
     const exitSpy = spyOn(process, "exit").mockImplementation((code?: number) => {
       exitCode = code;
@@ -162,8 +148,6 @@ describe("archivos sync", () => {
       exitSpy.mockRestore();
     }
 
-    // Either process.exit(1) was called (caught by spy) OR an error escaped
-    // Either way the error should be WienerError-like with code=validation-error
     if (exitCode !== undefined) {
       expect(exitCode).toBe(1);
       expect(capturedOutput).toHaveLength(1);
@@ -171,71 +155,36 @@ describe("archivos sync", () => {
       expect(envelope.ok).toBe(false);
       expect(envelope.error.code).toBe("validation-error");
     } else {
-      // The error escaped — verify it has the right shape
       expect(caughtError).toBeDefined();
       expect((caughtError as { code?: string }).code).toBe("validation-error");
     }
   });
 
-  it("exceeds max-size: errors before confirmation", async () => {
-    mockFileList = buildFiles(5, 120); // 5 × 120 MB = 600 MB > 500 MB default
-
-    let exited = false;
-    const exitSpy = spyOn(process, "exit").mockImplementation((_code?: number) => {
-      exited = true;
-      return undefined as never;
-    });
-
-    await runArchivosSync(baseOpts({ yes: true })); // even with --yes
-    exitSpy.mockRestore();
-
-    expect(exited).toBe(true);
-    const envelope = JSON.parse(capturedOutput[0]);
-    expect(envelope.ok).toBe(false);
-    expect(envelope.error.code).toBe("validation-error");
-    expect(envelope.error.hint).toContain("--max-size");
-  });
-
-  it("with --yes: proceeds past confirmation and returns result envelope", async () => {
-    // Confirm is called with yes=true → proceeds to download phase.
-    // Actual downloads may fail (no mock server) — we just verify the envelope shape.
+  it("with --yes: confirmation is called with yes=true", async () => {
     let _exitCode: number | undefined;
     const exitSpy = spyOn(process, "exit").mockImplementation((code?: number) => {
       _exitCode = code;
       return undefined as never;
     });
 
-    let _caughtError: unknown;
     try {
       await runArchivosSync(baseOpts({ yes: true }));
-    } catch (e) {
-      _caughtError = e;
+    } catch {
+      // downloads may fail without real server
     } finally {
       exitSpy.mockRestore();
     }
 
-    // Either a result envelope or an error envelope was produced — both are acceptable.
-    // What's NOT acceptable: the confirmT2 not being called.
     const dl = confirmCalls.find((c) => c.action === "archivos sync");
     expect(dl).toBeDefined();
     expect(dl?.opts.yes).toBe(true);
-
-    // If output was produced, verify its shape
-    if (capturedOutput.length > 0) {
-      const envelope = JSON.parse(capturedOutput[0]);
-      // Success envelope has total/downloaded/dir fields
-      if (envelope.ok) {
-        expect(typeof envelope.data.total).toBe("number");
-        expect(typeof envelope.data.dir).toBe("string");
-      }
-    }
   });
 
-  it("manifest totalSize is sum of all file sizes", async () => {
-    mockFileList = buildFiles(3, 25); // 3 × 25 MB = 75 MB
+  it("manifest totalCount matches module items count", async () => {
+    mockModuleItems = buildModuleItems(3);
 
     await runArchivosSync(baseOpts({ dryRun: true }));
     const envelope = JSON.parse(capturedOutput[0]);
-    expect(envelope.data.manifest.totalSize).toBe(3 * 25 * 1024 * 1024);
+    expect(envelope.data.manifest.totalCount).toBe(3);
   });
 });

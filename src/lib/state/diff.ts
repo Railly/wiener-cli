@@ -124,12 +124,16 @@ export function computeDiff(
         new Date(file.updated_at) > new Date(prevSnap.last_modified_at);
       if (isNew || isModified) {
         const course = courseCodeForId(courseId, data.courses);
-        const mb = (file.size / 1_048_576).toFixed(0);
+        const sizeBytes = typeof file.size === "number" ? file.size : null;
+        const detalle =
+          sizeBytes != null && Number.isFinite(sizeBytes)
+            ? `${(sizeBytes / 1_048_576).toFixed(1)} MB`
+            : "tamaño desconocido";
         items.push({
           tipo: "archivo",
           curso: course,
-          titulo: file.display_name,
-          detalle: `${mb} MB`,
+          titulo: file.display_name ?? file.filename ?? "archivo",
+          detalle,
           url: file.url,
           when: file.updated_at,
         });

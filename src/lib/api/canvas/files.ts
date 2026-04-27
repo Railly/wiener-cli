@@ -9,35 +9,52 @@ async function requireCanvasToken(profile = "default"): Promise<string> {
   return session.token;
 }
 
-export async function fetchCourseFiles(courseId: number, token: string): Promise<CanvasFile[]> {
+async function resolveToken(token?: string): Promise<string> {
+  return token ?? (await requireCanvasToken());
+}
+
+export async function fetchCourseFiles(
+  courseId: number | string,
+  token?: string,
+): Promise<CanvasFile[]> {
+  const t = await resolveToken(token);
   const res = await canvasFetchAll<CanvasFile>(`/api/v1/courses/${courseId}/files?per_page=100`, {
-    token,
+    token: t,
   });
   return res.data;
 }
 
-export async function fetchCourseFolders(courseId: number, token: string): Promise<CanvasFolder[]> {
+export async function fetchCourseFolders(
+  courseId: number | string,
+  token?: string,
+): Promise<CanvasFolder[]> {
+  const t = await resolveToken(token);
   const res = await canvasFetchAll<CanvasFolder>(
     `/api/v1/courses/${courseId}/folders?per_page=100`,
-    { token },
+    { token: t },
   );
   return res.data;
 }
 
-export async function fetchFolderFiles(folderId: number, token: string): Promise<CanvasFile[]> {
+export async function fetchFolderFiles(
+  folderId: number | string,
+  token?: string,
+): Promise<CanvasFile[]> {
+  const t = await resolveToken(token);
   const res = await canvasFetchAll<CanvasFile>(`/api/v1/folders/${folderId}/files?per_page=100`, {
-    token,
+    token: t,
   });
   return res.data;
 }
 
 export async function fetchFolderSubFolders(
-  folderId: number,
-  token: string,
+  folderId: number | string,
+  token?: string,
 ): Promise<CanvasFolder[]> {
+  const t = await resolveToken(token);
   const res = await canvasFetchAll<CanvasFolder>(
     `/api/v1/folders/${folderId}/folders?per_page=100`,
-    { token },
+    { token: t },
   );
   return res.data;
 }
@@ -62,8 +79,9 @@ export async function listAllFiles(
   return res.data;
 }
 
-export async function getFile(fileId: string | number, token: string): Promise<CanvasFile> {
-  const res = await canvasFetch<CanvasFile>(`/api/v1/files/${fileId}`, { token });
+export async function getFile(fileId: string | number, token?: string): Promise<CanvasFile> {
+  const t = await resolveToken(token);
+  const res = await canvasFetch<CanvasFile>(`/api/v1/files/${fileId}`, { token: t });
   return res.data;
 }
 

@@ -19,3 +19,36 @@ export async function fetchModules(courseId: number, profile = "default"): Promi
 }
 
 export const getModulesWithItems = fetchModules;
+
+export interface ModuleFileItem {
+  id: number;
+  title: string;
+  url: string;
+  module_id: number;
+  module_name: string;
+  content_id?: number;
+}
+
+export async function fetchModuleFileItems(
+  courseId: number,
+  profile = "default",
+): Promise<ModuleFileItem[]> {
+  const modules = await fetchModules(courseId, profile);
+  const result: ModuleFileItem[] = [];
+  for (const mod of modules) {
+    const items = mod.items ?? [];
+    for (const item of items) {
+      if (item.type === "File" && item.url) {
+        result.push({
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          module_id: mod.id,
+          module_name: mod.name,
+          content_id: item.content_id,
+        });
+      }
+    }
+  }
+  return result;
+}

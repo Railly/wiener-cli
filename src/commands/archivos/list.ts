@@ -1,14 +1,14 @@
 // wiener archivos <ref> — flat file listing for a logical course
+// Uses module items (type=File) as source since /courses/{id}/files is restricted by Wiener admin.
 
 import pc from "picocolors";
 import { fetchActiveCourses } from "../../lib/api/canvas/courses.js";
-import { fetchCourseFiles } from "../../lib/api/canvas/files.js";
+import { fetchModuleFileItems } from "../../lib/api/canvas/modules.js";
 import { groupBySection } from "../../lib/courses/grouping.js";
 import { resolveCourse } from "../../lib/courses/resolver.js";
-import { toErrorEnvelope } from "../../lib/errors.js";
-import { formatDueDate } from "../../lib/format/date.js";
+import { WienerRestrictedError, toErrorEnvelope } from "../../lib/errors.js";
 import { err, ok } from "../../lib/output/envelope.js";
-import { formatBytes, renderSection } from "../../lib/output/human.js";
+import { renderSection } from "../../lib/output/human.js";
 import { emit } from "../../lib/output/json.js";
 import { emitStream } from "../../lib/output/ndjson.js";
 import { renderTable } from "../../lib/output/responsive-table.js";
@@ -45,26 +45,36 @@ export async function runArchivos(
     const secciones = resolvedCourse.secciones;
     const filtered = opts.seccion ? secciones.filter((s) => s.seccion === opts.seccion) : secciones;
 
-    const allFiles = await pMap(
+    const allItems = await pMap(
       filtered,
       async (s) => {
-        const files = await fetchCourseFiles(Number(s.id));
-        return files.map((f) => ({
-          id: f.id,
-          name: f.display_name,
-          path: f.filename,
-          size: f.size,
-          size_human: formatBytes(f.size),
-          modified_at: f.modified_at,
-          download_url: f.url,
-          content_type: f["content-type"],
-          seccion: s.seccion,
-        }));
+        try {
+          const items = await fetchModuleFileItems(Number(s.id));
+          return items.map((item) => {
+            const ext = item.title.includes(".")
+              ? (item.title.split(".").pop()?.toLowerCase() ?? "—")
+              : "—";
+            return {
+              id: item.id,
+              content_id: item.content_id,
+              name: item.title,
+              download_url: item.url,
+              module_name: item.module_name,
+              module_id: item.module_id,
+              type: ext,
+              seccion: s.seccion,
+            };
+          });
+        } catch (e) {
+          if (e instanceof WienerRestrictedError) return [];
+          throw e;
+        }
       },
       4,
     );
 
-    const archivos = allFiles.flat().sort((a, b) => b.modified_at.localeCompare(a.modified_at));
+    const archivos = allItems.flat();
+
     const cursoInfo = {
       code: resolvedCourse.code,
       alias: resolvedCourse.alias,
@@ -86,23 +96,36 @@ export async function runArchivos(
     }
 
     if (archivos.length === 0) {
-      console.log(pc.dim(`No hay archivos en ${resolvedCourse.code}.`));
+      console.log(
+        `${pc.dim(`No hay archivos en módulos de ${resolvedCourse.code}`)}\n${pc.dim("  Wiener restringe /files — solo se muestran archivos adjuntos a módulos.")}`,
+      );
+      console.log(
+        `\n  ${pc.dim("→")} ${pc.cyan(`wiener cursos abrir ${ref}`)}   ${pc.dim("abrir el portal y descargar manualmente")}`,
+      );
       return;
     }
 
+    const moduleCounts = new Map<string, number>();
+    for (const f of archivos) {
+      moduleCounts.set(f.module_name, (moduleCounts.get(f.module_name) ?? 0) + 1);
+    }
+    const moduleCount = moduleCounts.size;
+
     console.log(
       renderSection(
-        `Archivos — ${resolvedCourse.code}`,
+        `Archivos — ${resolvedCourse.code} · ${resolvedCourse.name ?? ""}`,
         renderTable(archivos, [
           {
-            header: "Secc.",
-            get: (f) => f.seccion,
-            fixed: 6,
-            show: "wide",
-            priority: 4,
+            header: "Módulo",
+            get: (f) => f.module_name,
+            weight: 2,
+            min: 12,
+            max: 30,
+            show: "always",
+            priority: 7,
           },
           {
-            header: "Nombre",
+            header: "Archivo",
             get: (f) => f.name,
             weight: 3,
             min: 20,
@@ -110,25 +133,9 @@ export async function runArchivos(
             priority: 9,
           },
           {
-            header: "Tamaño",
-            get: (f) => f.size_human,
-            fixed: 8,
-            align: "right",
-            show: "wide",
-            priority: 5,
-          },
-          {
-            header: "Modificado",
-            get: (f) => formatDueDate(f.modified_at),
-            weight: 1,
-            min: 14,
-            show: "always",
-            priority: 8,
-          },
-          {
             header: "Tipo",
-            get: (f) => f.content_type.split("/")[1] ?? f.content_type,
-            fixed: 10,
+            get: (f) => f.type,
+            fixed: 6,
             show: "wide",
             priority: 3,
           },
@@ -136,7 +143,11 @@ export async function runArchivos(
       ),
     );
 
-    console.log(pc.dim(`\n  Total: ${archivos.length} archivos`));
+    console.log(pc.dim(`\n  Total: ${archivos.length} archivos en ${moduleCount} módulos`));
+    console.log(`\n  ${pc.dim("→")} ${pc.cyan("wiener archivos download <id> --out ./material")}`);
+    console.log(
+      `  ${pc.dim("→")} ${pc.cyan(`wiener modulos ${ref}`)}   ${pc.dim("ver módulos completos")}`,
+    );
   } catch (e) {
     if (opts.json) {
       emit(toErrorEnvelope(e));

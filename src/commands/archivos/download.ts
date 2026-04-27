@@ -5,7 +5,7 @@ import { emitNextSteps } from "../../lib/agent/next-steps.ts";
 import { getFile } from "../../lib/api/canvas/files.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
-import { WienerError, isWienerLike } from "../../lib/errors.ts";
+import { WienerError, WienerRestrictedError, isWienerLike } from "../../lib/errors.ts";
 import { errorEnvelope, successEnvelope } from "../../lib/output/envelope.ts";
 import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
@@ -64,8 +64,25 @@ export async function runArchivosDownload(opts: ArchivosDownloadOptions): Promis
   }
 
   try {
-    // Fetch file metadata
-    const file = await getFile(opts.fileId, session.token);
+    let file: Awaited<ReturnType<typeof getFile>>;
+    try {
+      file = await getFile(opts.fileId, session.token);
+    } catch (e) {
+      if (e instanceof WienerRestrictedError) {
+        const hint =
+          "El endpoint /files/{id} está restringido por Wiener admin. Usa `wiener archivos <ref>` para listar archivos desde módulos y obtener la URL de descarga directa.";
+        const errObj = errorEnvelope("wiener-restricted-endpoint", e.message, hint);
+        if (opts.json) {
+          printJson(errObj);
+        } else {
+          printError(`[wiener-restricted-endpoint] ${e.message}`);
+          printLine(pc.dim(`Hint: ${hint}`));
+        }
+        process.exit(1);
+        return;
+      }
+      throw e;
+    }
 
     // Determine destination path
     const outPath = opts.out ? resolve(opts.out) : resolve(process.cwd(), file.display_name);

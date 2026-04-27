@@ -1,9 +1,9 @@
-import { createWriteStream, existsSync, mkdirSync, statSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import pc from "picocolors";
 import { emitNextSteps } from "../../lib/agent/next-steps.ts";
-import type { CanvasFile } from "../../lib/api/canvas/files.ts";
-import { listAllFiles } from "../../lib/api/canvas/files.ts";
+import type { ModuleFileItem } from "../../lib/api/canvas/modules.ts";
+import { fetchModuleFileItems } from "../../lib/api/canvas/modules.ts";
 import { auditLog } from "../../lib/audit/log.ts";
 import { loadCanvasSession } from "../../lib/auth/store.ts";
 import { isWienerLike } from "../../lib/errors.ts";
@@ -12,13 +12,13 @@ import { printError, printLine } from "../../lib/output/human.ts";
 import { printJson } from "../../lib/output/json.ts";
 import { confirmT2 } from "../../lib/safety/confirm.ts";
 
-const DEFAULT_MAX_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 const DEFAULT_CONCURRENCY = 4;
 
 export interface ArchivosManifestFile {
   id: number;
   path: string;
   size: number;
+  url?: string;
 }
 
 export interface ArchivosManifest {
@@ -47,35 +47,24 @@ export interface ArchivosSyncOptions {
   profile: string;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} B`;
-}
-
-function buildDestPath(file: CanvasFile, destDir: string): string {
-  // Canvas files have folder hierarchy via folder_id — without folder tree
-  // we flatten to dest/<filename>. Phase C integration can add full_name path.
-  const safeName = file.display_name.replace(/[/\\]/g, "_");
+function buildDestPathFromTitle(title: string, destDir: string): string {
+  const safeName = title.replace(/[/\\]/g, "_");
   return join(destDir, safeName);
 }
 
-function isAlreadyPresent(destPath: string, expectedSize: number): boolean {
-  if (!existsSync(destPath)) return false;
-  const stat = statSync(destPath);
-  return stat.size === expectedSize;
+function isAlreadyPresent(destPath: string): boolean {
+  return existsSync(destPath);
 }
 
 async function downloadOne(
-  file: CanvasFile,
+  item: ModuleFileItem,
   destPath: string,
   token: string,
 ): Promise<"ok" | "skipped" | "failed"> {
-  if (isAlreadyPresent(destPath, file.size)) return "skipped";
+  if (isAlreadyPresent(destPath)) return "skipped";
 
   try {
-    const response = await fetch(file.url, {
+    const response = await fetch(item.url, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -87,9 +76,9 @@ async function downloadOne(
     const writer = createWriteStream(destPath);
     const reader = response.body.getReader();
 
-    // biome-ignore lint/suspicious/noAssignInExpressions: stream loop pattern
-    let chunk: ReadableStreamReadResult<Uint8Array>;
-    while (!(chunk = await reader.read()).done) {
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
       writer.write(chunk.value);
     }
 
@@ -138,59 +127,37 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
     process.exit(1);
   }
 
-  const maxSizeBytes = (opts.maxSizeMb ?? 500) * 1024 * 1024;
   const destDir = opts.dir ?? join(process.cwd(), opts.courseId);
 
   try {
-    // Fetch all files for the course
-    const files = await listAllFiles(opts.courseId, session.token);
+    const items = await fetchModuleFileItems(opts.courseId);
+    const totalCount = items.length;
 
-    const totalCount = files.length;
-    const totalSize = files.reduce((acc, f) => acc + f.size, 0);
-
-    // Check size cap
-    if (totalSize > maxSizeBytes) {
-      const err = errorEnvelope(
-        "validation-error",
-        `Total size ${formatSize(totalSize)} exceeds limit ${formatSize(maxSizeBytes)}.`,
-        `Use --max-size ${Math.ceil(totalSize / 1024 / 1024)} to override.`,
-      );
-      if (opts.json) {
-        printJson(err);
-      } else {
-        printError(`[validation-error] Total size ${formatSize(totalSize)} exceeds limit.`);
-        printLine(pc.dim(`Hint: Use --max-size ${Math.ceil(totalSize / 1024 / 1024)}.`));
-      }
-      process.exit(1);
-      return;
-    }
-
-    // Build manifest
+    // Build manifest (no size info from modules, so size=0 as placeholder)
     const manifest: ArchivosManifest = {
       totalCount,
-      totalSize,
-      files: files.map((f) => ({
-        id: f.id,
-        path: buildDestPath(f, destDir),
-        size: f.size,
+      totalSize: 0,
+      files: items.map((item) => ({
+        id: item.id,
+        path: buildDestPathFromTitle(item.title, destDir),
+        size: 0,
+        url: item.url,
       })),
     };
 
-    // Compute skip list
-    const toSkip = manifest.files.filter((f) => isAlreadyPresent(f.path, f.size));
-    const toDownload = manifest.files.filter((f) => !isAlreadyPresent(f.path, f.size));
-    const downloadSize = toDownload.reduce((acc, f) => acc + f.size, 0);
+    const toSkip = manifest.files.filter((f) => isAlreadyPresent(f.path));
+    const toDownload = manifest.files.filter((f) => !isAlreadyPresent(f.path));
 
     const previewText = [
       pc.bold(`wiener archivos sync — PREVIEW (${opts.courseId})`),
       "─".repeat(48),
       `Archivos:    ${totalCount}`,
-      `Tamaño:      ${formatSize(totalSize)}`,
       `Destino:     ${destDir}/`,
       "",
-      pc.dim(`Skipping (already present, same size): ${toSkip.length} files`),
-      `Will download: ${toDownload.length} files (${formatSize(downloadSize)})`,
+      pc.dim(`Skipping (already present): ${toSkip.length} files`),
+      `Will download: ${toDownload.length} files`,
       "",
+      pc.dim("Wiener restringe /files — usando módulos como fuente."),
       pc.dim("Continúa con --yes."),
     ].join("\n");
 
@@ -237,17 +204,16 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
     let skipped = toSkip.length;
     let failed = 0;
 
-    // Map file id → CanvasFile for download
-    const fileById = new Map(files.map((f) => [f.id, f]));
+    const itemById = new Map(items.map((item) => [item.id, item]));
 
     await runConcurrent(toDownload, DEFAULT_CONCURRENCY, async (manifestFile, _idx) => {
-      const canvasFile = fileById.get(manifestFile.id);
-      if (!canvasFile) {
+      const moduleItem = itemById.get(manifestFile.id);
+      if (!moduleItem) {
         failed++;
         return;
       }
 
-      const result = await downloadOne(canvasFile, manifestFile.path, session.token);
+      const result = await downloadOne(moduleItem, manifestFile.path, session.token);
 
       if (result === "ok") {
         downloaded++;
@@ -259,14 +225,14 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
           id: `tx_${Date.now()}_${manifestFile.id}`,
         });
         if (!opts.json) {
-          printLine(pc.green(`  ✓ ${canvasFile.display_name}`));
+          printLine(pc.green(`  ✓ ${moduleItem.title}`));
         }
       } else if (result === "skipped") {
         skipped++;
       } else {
         failed++;
         if (!opts.json) {
-          printLine(pc.red(`  ✗ ${canvasFile.display_name} (failed)`));
+          printLine(pc.red(`  ✗ ${moduleItem.title} (failed)`));
         }
       }
     });
@@ -286,12 +252,8 @@ export async function runArchivosSync(opts: ArchivosSyncOptions): Promise<void> 
     } else {
       const labelW = 15;
       console.log(`\n${pc.cyan("✓")} ${pc.bold("Sincronización completa")}\n`);
-      console.log(
-        `  ${pc.dim("Descargados:".padEnd(labelW))} ${downloaded} archivos${downloadSize > 0 ? ` (${formatSize(downloadSize)})` : ""}`,
-      );
-      console.log(
-        `  ${pc.dim("Saltados:".padEnd(labelW))} ${skipped} (ya existían con mismo tamaño)`,
-      );
+      console.log(`  ${pc.dim("Descargados:".padEnd(labelW))} ${downloaded} archivos`);
+      console.log(`  ${pc.dim("Saltados:".padEnd(labelW))} ${skipped} (ya existían)`);
       console.log(
         `  ${pc.dim("Fallidos:".padEnd(labelW))} ${failed === 0 ? pc.green("0") : pc.red(String(failed))}`,
       );
