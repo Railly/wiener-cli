@@ -1,6 +1,12 @@
 import type { RateLimit } from "../../../types/canvas.js";
 import { DEFAULT_CONFIG } from "../../../types/config.js";
-import { CanvasTokenInvalidError, NetworkError, RateLimitedError } from "../../errors.js";
+import {
+  CanvasTokenInvalidError,
+  NetworkError,
+  RateLimitedError,
+  WienerFeatureDisabledError,
+  WienerRestrictedError,
+} from "../../errors.js";
 
 const BASE_URL = DEFAULT_CONFIG.canvas.base_url;
 const TIMEOUT_MS = DEFAULT_CONFIG.canvas.request_timeout_ms;
@@ -79,6 +85,14 @@ export async function canvasFetch<T = unknown>(
   }
 
   const text = await response.text();
+
+  if (
+    response.status === 404 &&
+    (text.trimStart().startsWith("<!DOCTYPE html") || text.trimStart().startsWith("<html"))
+  ) {
+    throw new WienerFeatureDisabledError(path);
+  }
+
   let data: T;
   try {
     data = JSON.parse(text) as T;
@@ -87,6 +101,30 @@ export async function canvasFetch<T = unknown>(
       `Canvas returned non-JSON (status ${response.status})`,
       text.slice(0, 200),
     );
+  }
+
+  const errBody = data as unknown as {
+    status?: string;
+    errors?: Array<{ message?: string }>;
+  };
+  if (
+    errBody &&
+    typeof errBody === "object" &&
+    !Array.isArray(errBody) &&
+    typeof errBody.status === "string" &&
+    Array.isArray(errBody.errors)
+  ) {
+    const msg = errBody.errors[0]?.message ?? errBody.status;
+    if (errBody.status === "unauthorized" || errBody.status === "forbidden") {
+      const isWienerRestriction = errBody.errors[0]?.message
+        ?.toLowerCase()
+        .includes("usuario no autorizado");
+      if (isWienerRestriction) {
+        throw new WienerRestrictedError(path, msg);
+      }
+      throw new CanvasTokenInvalidError(`Canvas: ${msg}`);
+    }
+    throw new NetworkError(`Canvas error (${errBody.status}): ${msg}`, text.slice(0, 200));
   }
 
   return { data, headers: response.headers, rateLimit };

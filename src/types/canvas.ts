@@ -129,6 +129,7 @@ export interface CanvasModuleItem {
   type: string;
   html_url?: string;
   url?: string;
+  content_id?: number;
 }
 
 export interface UpcomingEvent {
