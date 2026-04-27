@@ -5,7 +5,7 @@ import { fetchActiveCourses } from "../lib/api/canvas/courses.js";
 import { fetchQuizzes } from "../lib/api/canvas/quizzes.js";
 import { groupBySection } from "../lib/courses/grouping.js";
 import { resolveCourse } from "../lib/courses/resolver.js";
-import { toErrorEnvelope } from "../lib/errors.js";
+import { WienerFeatureDisabledError, toErrorEnvelope } from "../lib/errors.js";
 import { formatDueDate } from "../lib/format/date.js";
 import { err, ok } from "../lib/output/envelope.js";
 import { renderSection } from "../lib/output/human.js";
@@ -145,6 +145,20 @@ export async function runQuizzes(
       ),
     );
   } catch (e) {
+    if (e instanceof WienerFeatureDisabledError) {
+      if (opts.json) {
+        emit(toErrorEnvelope(e));
+        return;
+      }
+      console.log("\nEste curso no tiene quizzes habilitados.\n");
+      console.log(
+        `  ${pc.dim("→")} ${pc.cyan(`wiener modulos ${ref}`)}     ${pc.dim("ver material organizado por módulos")}`,
+      );
+      console.log(
+        `  ${pc.dim("→")} ${pc.cyan(`wiener tareas ${ref}`)}      ${pc.dim("ver assignments")}`,
+      );
+      return;
+    }
     if (opts.json) {
       emit(toErrorEnvelope(e));
       return;
