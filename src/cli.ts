@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
+import { renderBanner } from "./lib/output/banner.js";
 import { VERSION } from "./lib/version.js";
 
 import { registerCanvasClear } from "./commands/auth/canvas/clear.js";
@@ -82,6 +83,69 @@ program
   .version(VERSION, "-v, --version")
   .option("--profile <name>", "Use named profile (global)", "default")
   .option("--config <path>", "Override config directory (global)");
+
+// Override commander's help to show banner + grouped sections
+program.configureHelp({
+  formatHelp: (_cmd, helper) => {
+    const color = !process.env.NO_COLOR && process.stdout.isTTY === true;
+    const banner = color ? renderBanner({ color: true }) : renderBanner({ color: false });
+
+    const H = (s: string) => (color ? `\x1b[1m\x1b[36m${s}\x1b[0m` : s);
+    const D = (s: string) => (color ? `\x1b[2m${s}\x1b[0m` : s);
+    const C = (s: string) => (color ? `\x1b[36m${s}\x1b[0m` : s);
+
+    const usage = helper.commandUsage(_cmd);
+
+    return `${banner}
+${H("USO")}
+  ${usage}
+
+${H("PRIMEROS PASOS")}
+  ${C("wiener auth login")}              configurar intranet
+  ${C("wiener auth canvas pat new")}     configurar Canvas
+  ${C("wiener")}                         panorama de hoy
+
+${H("COMANDOS DEL DÍA")}
+  ${C("wiener")}                         panorama hoy + diff + pendientes
+  ${C("wiener hoy")}                     horario y tareas de hoy
+  ${C("wiener ahora")}                   clase actual + próxima
+  ${C("wiener semana")}                  semana completa
+  ${C("wiener nuevo")}                   diff desde última corrida
+
+${H("ACADÉMICO")}
+  ${C("wiener notas [--periodo X]")}     notas oficiales (intranet)
+  ${C("wiener calificaciones [<ref>]")}  calificaciones formativas (Canvas)
+  ${C("wiener historial")}               historial completo
+  ${C("wiener examenes")}                rol de exámenes
+  ${C("wiener asistencia")}              asistencia por curso
+  ${C("wiener plan")}                    plan de estudios
+
+${H("CURSOS Y MATERIAL")}
+  ${C("wiener cursos")}                  lista de cursos activos
+  ${C("wiener tareas [<ref>]")}          tareas (UI esconde esto)
+  ${C("wiener archivos <ref>")}          archivos del curso
+  ${C("wiener modulos <ref>")}           módulos
+  ${C("wiener anuncios [<ref>]")}        anuncios
+  ${C("wiener syllabus <ref>")}          syllabus
+
+${H("ADMIN")}
+  ${C("wiener pagos")}                   deudas pendientes
+  ${C("wiener tramite generar")}         crear orden de pago (T2)
+  ${C("wiener perfil")}                  datos personales
+
+${H("OPS")}
+  ${C("wiener doctor")}                  health check
+  ${C("wiener config")}                  configuración
+
+${H("OPCIONES GLOBALES")}
+  ${D("--json")}                         output JSON para agentes
+  ${D("--no-color")}                     desactivar colores
+  ${D("--profile <nombre>")}             perfil alternativo
+  ${D("--help, -h")}                     ayuda
+  ${D("--version, -v")}                  versión
+`;
+  },
+});
 
 // Note: --json, --ndjson, etc. are defined on each subcommand.
 // Commander eats parent options before passing to child; defining

@@ -1,4 +1,6 @@
 import type { Command } from "commander";
+import pc from "picocolors";
+import { NEXT_STEPS, emitNextSteps } from "../../lib/agent/next-steps.js";
 import { getActiveCoursesWithToken as getActiveCourses } from "../../lib/api/canvas/courses.js";
 import { loadCanvasSession } from "../../lib/auth/store.js";
 import { getProfileAliases } from "../../lib/courses/alias-store.js";
@@ -16,6 +18,7 @@ interface ListOptions {
   profile?: string;
   favoritos?: boolean;
 }
+
 
 export function registerCursosList(cursosCmd: Command): void {
   cursosCmd
@@ -38,6 +41,9 @@ export function registerCursosList(cursosCmd: Command): void {
         );
         if (opts.json) emitJson(envelope);
         printError(envelope.error.code, envelope.error.message, envelope.error.hint);
+        emitNextSteps(
+          NEXT_STEPS.canvasRequired as readonly { command: string; description: string }[],
+        );
         process.exit(1);
       }
 
@@ -65,13 +71,16 @@ export function registerCursosList(cursosCmd: Command): void {
               role: c.enrollments?.[0]?.role,
             })),
           };
-          if (opts.json) emitJson(ok(data, { duration_ms: Date.now() - start }));
+          if (opts.json) {
+            emitJson(ok(data, { duration_ms: Date.now() - start }));
+            return;
+          }
           console.log(
             renderTable(data.cursos, [
-              { header: "Code", get: (c) => c.code, fixed: 12, show: "always", priority: 10 },
+              { header: "Code", get: (c) => c.code, fixed: 12, color: (v) => pc.bold(pc.yellow(v)), show: "always", priority: 10 },
               { header: "Name", get: (c) => c.name ?? "", weight: 2, min: 20, show: "always", priority: 9 },
-              { header: "Alias", get: (c) => c.alias, fixed: 12, show: "wide", priority: 5 },
-              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, show: "wide", priority: 4 },
+              { header: "Alias", get: (c) => c.alias, fixed: 12, color: (v) => pc.dim(v), show: "wide", priority: 5 },
+              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, color: (v) => pc.dim(v), show: "wide", priority: 4 },
             ]),
           );
         } else {
@@ -86,23 +95,33 @@ export function registerCursosList(cursosCmd: Command): void {
               role: l.role,
             })),
           };
-          if (opts.json) emitJson(ok({ cursos: logical.map((l) => ({ code: l.code, name: l.name, alias: l.alias, secciones: l.secciones, term: l.term, role: l.role })) }, { duration_ms: Date.now() - start }));
+          if (opts.json) {
+            emitJson(ok(data, { duration_ms: Date.now() - start }));
+            return;
+          }
           console.log(
             renderTable(data.cursos, [
-              { header: "Code", get: (c) => c.code, fixed: 12, show: "always", priority: 10 },
+              { header: "Code", get: (c) => c.code, fixed: 12, color: (v) => pc.bold(pc.yellow(v)), show: "always", priority: 10 },
               { header: "Name", get: (c) => c.name, weight: 2, min: 20, show: "always", priority: 9 },
-              { header: "Alias", get: (c) => c.alias, fixed: 12, show: "wide", priority: 5 },
-              { header: "Sections", get: (c) => c.secciones, fixed: 9, show: "wide", priority: 4 },
-              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, show: "wide", priority: 3 },
+              { header: "Alias", get: (c) => c.alias, fixed: 12, color: (v) => pc.dim(v), show: "wide", priority: 5 },
+              { header: "Secc.", get: (c) => c.secciones, fixed: 9, show: "wide", priority: 4 },
+              { header: "Term", get: (c) => c.term ?? "—", fixed: 10, color: (v) => pc.dim(v), show: "wide", priority: 3 },
             ]),
           );
         }
+
+        emitNextSteps(
+          NEXT_STEPS.afterCursos as readonly { command: string; description: string }[],
+        );
         process.exit(0);
       } catch (e) {
         const wienerErr = e as WienerError;
         const envelope = err(wienerErr.code ?? "unknown-error", wienerErr.message, wienerErr.hint);
         if (opts.json) emitJson(envelope);
         printError(envelope.error.code, envelope.error.message, envelope.error.hint);
+        emitNextSteps(
+          NEXT_STEPS.authRequired as readonly { command: string; description: string }[],
+        );
         process.exit(1);
       }
     });

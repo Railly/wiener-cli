@@ -69,9 +69,7 @@ export async function loginIntranet(input: LoginInput): Promise<IntranetSession>
     : authData.action;
   const normalizedAction = `/${rawAction.replace(/^\/+/, "").replace(/\/+$/, "")}`;
   const validaPath =
-    authData.estado === "1"
-      ? `${normalizedAction}/ValidaAcceso.asp`
-      : normalizedAction;
+    authData.estado === "1" ? `${normalizedAction}/ValidaAcceso.asp` : normalizedAction;
 
   const validaBody = new URLSearchParams({
     lgnUserName: input.usuario,

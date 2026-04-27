@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { renderBanner } from "../lib/output/banner.js";
 import { ok } from "../lib/output/envelope.js";
 import { emit } from "../lib/output/json.js";
 import { renderPanorama } from "../lib/output/panorama-renderer.js";
@@ -22,6 +23,12 @@ export function registerRoot(program: Command): void {
       }
 
       const color = isColorEnabled();
+
+      // Show banner when not authenticated
+      if (!panorama.authed) {
+        process.stdout.write(renderBanner({ color }));
+      }
+
       process.stdout.write(renderPanorama(panorama, { color }));
     });
 }

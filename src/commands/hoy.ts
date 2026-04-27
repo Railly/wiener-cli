@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import pc from "picocolors";
+import { NEXT_STEPS, renderNextSteps } from "../lib/agent/next-steps.js";
 import { getTodo, getUpcomingEvents } from "../lib/api/canvas/calendar.js";
 import { getActiveCourses } from "../lib/api/canvas/courses.js";
 import { getHorarioMatriculado } from "../lib/api/intranet/horario.js";
@@ -42,6 +43,35 @@ const MESES = [
   "noviembre",
   "diciembre",
 ];
+
+function formatDueTime(isoDate: string): string {
+  const d = new Date(isoDate);
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function formatDueLabel(isoDate: string, color: boolean): string {
+  const due = new Date(isoDate);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const timeStr = formatDueTime(isoDate);
+
+  if (diffMs < 0) {
+    const label = `atrasada (${timeStr})`;
+    return color ? pc.bold(pc.red(label)) : label;
+  }
+  const diffHrs = diffMs / (1000 * 3600);
+  if (diffHrs < 6) {
+    const label = `vence ${timeStr} (¡en ${Math.round(diffHrs * 60)}m!)`;
+    return color ? pc.bold(pc.red(label)) : label;
+  }
+  if (diffHrs < 24) {
+    const label = `vence hoy ${timeStr}`;
+    return color ? pc.yellow(label) : label;
+  }
+  return color ? pc.dim(`vence ${timeStr}`) : `vence ${timeStr}`;
+}
 
 export function registerHoy(program: Command): void {
   program
@@ -107,35 +137,90 @@ export function registerHoy(program: Command): void {
 
         const color = isColorEnabled();
         const lines: string[] = [];
-        const header = `Hoy — ${fecha}`;
-        lines.push(color ? pc.bold(header) : header);
-        lines.push("─".repeat(header.length));
+
+        // Header
         lines.push("");
+        const header = `Hoy — ${fecha}`;
+        lines.push(color ? pc.bold(pc.cyan(header)) : header);
+        lines.push(
+          color
+            ? pc.dim("─".repeat(Math.max(header.length, 40)))
+            : "─".repeat(Math.max(header.length, 40)),
+        );
+        lines.push("");
+
+        // Bloques
         if (bloques && Array.isArray(bloques) && bloques.length > 0) {
+          const secHeader = "Clases";
+          lines.push(color ? `  ${pc.bold(secHeader)}` : `  ${secHeader}`);
           for (const b of bloques) {
-            lines.push(
-              `  ${b.time_start}-${b.time_end}  ${b.course_code} · ${b.course_name}  ${b.room}`,
-            );
+            const time = color
+              ? pc.green(`${b.time_start}–${b.time_end}`)
+              : `${b.time_start}–${b.time_end}`;
+            const code = b.course_code
+              ? color
+                ? pc.bold(pc.yellow(b.course_code))
+                : b.course_code
+              : "";
+            const name = color ? pc.white(b.course_name) : b.course_name;
+            const coursePart = code ? `${code}  ${name}` : name;
+            lines.push(`    ${time.padEnd(color ? 22 : 11)}  ${coursePart}`);
+
+            const parts: string[] = [];
+            if (b.room) parts.push(b.room);
+            if (b.building && b.building !== b.room) parts.push(b.building);
+            if (b.teacher) parts.push(`Prof. ${b.teacher}`);
+            if (parts.length > 0) {
+              lines.push(
+                color
+                  ? `    ${" ".repeat(13)}${pc.dim(parts.join("  ·  "))}`
+                  : `    ${" ".repeat(13)}${parts.join("  ·  ")}`,
+              );
+            }
           }
         } else {
           lines.push(color ? pc.dim("  Sin clases hoy.") : "  Sin clases hoy.");
         }
+
+        // Tareas hoy
         if (tareasHoy.length > 0) {
           lines.push("");
-          lines.push(color ? pc.bold("Tareas hoy") : "Tareas hoy");
+          const tHeader = "Entregas hoy";
+          lines.push(color ? `  ${pc.bold(pc.cyan(tHeader))}` : `  ${tHeader}`);
+          lines.push(
+            color ? `  ${pc.dim("─".repeat(tHeader.length))}` : `  ${"─".repeat(tHeader.length)}`,
+          );
           for (const t of tareasHoy) {
+            const curso = color ? pc.bold(pc.yellow(t.curso.padEnd(10))) : t.curso.padEnd(10);
+            const titulo = color ? pc.white(t.titulo) : t.titulo;
+            const due = formatDueLabel(t.due_at, color);
+            lines.push(`    ${curso}  ${titulo}`);
             lines.push(
-              `  ${t.curso}  ${t.titulo}  ${new Date(t.due_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}`,
+              color ? `    ${" ".repeat(12)}${pc.dim(due)}` : `    ${" ".repeat(12)}${due}`,
             );
           }
         }
-        lines.push("");
+
+        lines.push(
+          renderNextSteps(
+            NEXT_STEPS.afterHoy as readonly { command: string; description: string }[],
+            color,
+          ),
+        );
         process.stdout.write(lines.join("\n"));
       } catch (e) {
         if (opts.json) {
           emit(err("error", String(e)));
         } else {
-          process.stderr.write(`Error: ${e}\n`);
+          process.stderr.write(
+            `${pc.red("error:")} ${e instanceof Error ? e.message : String(e)}\n`,
+          );
+          process.stderr.write(
+            renderNextSteps(
+              NEXT_STEPS.authRequired as readonly { command: string; description: string }[],
+              isColorEnabled(),
+            ),
+          );
         }
         process.exit(1);
       }
