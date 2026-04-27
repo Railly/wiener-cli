@@ -1,6 +1,7 @@
 import type { RateLimit } from "../../../types/canvas.js";
 import { DEFAULT_CONFIG } from "../../../types/config.js";
 import {
+  CanvasServerError,
   CanvasTokenInvalidError,
   NetworkError,
   RateLimitedError,
@@ -15,6 +16,7 @@ export interface CanvasFetchOptions extends RequestInit {
   token: string;
   baseUrl?: string;
   timeoutMs?: number;
+  retries?: number;
 }
 
 export interface CanvasFetchResult<T = unknown> {
@@ -51,11 +53,11 @@ function parseLinkNext(headers: Headers): string | null {
   return null;
 }
 
-export async function canvasFetch<T = unknown>(
+async function canvasFetchOnce<T = unknown>(
   path: string,
   opts: CanvasFetchOptions,
 ): Promise<CanvasFetchResult<T>> {
-  const { token, baseUrl = BASE_URL, timeoutMs = TIMEOUT_MS, ...init } = opts;
+  const { token, baseUrl = BASE_URL, timeoutMs = TIMEOUT_MS, retries: _retries, ...init } = opts;
   const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
 
   let response: Response;
@@ -76,6 +78,10 @@ export async function canvasFetch<T = unknown>(
 
   if (response.status === 401) {
     throw new CanvasTokenInvalidError();
+  }
+
+  if (response.status >= 500 && response.status < 600) {
+    throw new CanvasServerError(response.status, path);
   }
 
   const rateLimit = parseRateLimit(response.headers);
@@ -128,6 +134,30 @@ export async function canvasFetch<T = unknown>(
   }
 
   return { data, headers: response.headers, rateLimit };
+}
+
+export async function canvasFetch<T = unknown>(
+  path: string,
+  opts: CanvasFetchOptions,
+): Promise<CanvasFetchResult<T>> {
+  const maxRetries = opts.retries ?? 2;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await canvasFetchOnce<T>(path, opts);
+    } catch (e) {
+      if (e instanceof CanvasServerError && attempt < maxRetries) {
+        lastError = e;
+        const delayMs = attempt === 0 ? 1_000 : 3_000;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw e;
+    }
+  }
+
+  throw lastError;
 }
 
 export async function canvasFetchAll<T = unknown>(
