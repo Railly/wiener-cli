@@ -82,7 +82,8 @@ program
   .description("Agent-first CLI for Universidad Norbert Wiener student portals")
   .version(VERSION, "-v, --version")
   .option("--profile <name>", "Use named profile (global)", "default")
-  .option("--config <path>", "Override config directory (global)");
+  .option("--config <path>", "Override config directory (global)")
+  .addHelpCommand("help [command]", "Mostrar ayuda (alias de --help)");
 
 // Override commander's help to show banner + grouped sections
 program.configureHelp({

@@ -301,11 +301,29 @@ when constructing complex `--params '<json>'` invocations.
    - 6 institutional global announcements visible on dashboard — reachable
      via `wiener anuncios globales`.
 
-7. **Canvas rate limit**: 3000 req/hour per token. CLI tracks via
+7. **Wiener admin endpoint restrictions (v0.4.0+)**:
+   Some Canvas endpoints are blocked at the institutional level — not by the
+   PAT. The CLI distinguishes these from token errors:
+   - `GET /courses/{id}/files` — **blocked**. `wiener archivos list` automatically
+     falls back to module items (`/modules?include[]=items`) as the source.
+     Files attached to modules appear; files uploaded directly to the Files tab
+     do not.
+   - `GET /courses/{id}/files/{id}` — **blocked**. `wiener archivos download`
+     shows a helpful message and instructs the user to copy the download URL from
+     `wiener archivos list` output and use the `--url` flag instead.
+   - Per-course features (pages, quizzes, conferences) can be disabled by the
+     instructor. If so, those commands show a friendly message and redirect to
+     `wiener modulos <ref>`.
+   - `wiener doctor` includes a **Capabilities** matrix that probes all
+     endpoints and shows what works vs. what is restricted, with 1h cache.
+   - Error codes: `wiener-restricted-endpoint` (admin block) vs.
+     `canvas-not-configured` (token problem) — these are intentionally different.
+
+8. **Canvas rate limit**: 3000 req/hour per token. CLI tracks via
    `X-Canvas-Meta` `rlr=` header. Approaching limit (rlr < 100) surfaces a
    warning in `--verbose` mode but continues.
 
-8. **No bulk write of `tramite generar`**: rate-limited to 1/min internally
+9. **No bulk write of `tramite generar`**: rate-limited to 1/min internally
    even with `--yes`. Same for `tareas submit`.
 
 9. **Submission upload preserves filenames**: Canvas accepts files via 3-step

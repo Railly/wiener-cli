@@ -272,6 +272,56 @@ wiener canvas tareas FB6N1    # equivalent to: wiener tareas FB6N1
 The canonical user invocation is top-level plano (`wiener tareas FB6N1`).
 Namespaces exist as alias entry, useful when an agent wants filtered help.
 
+## Wiener API Restrictions
+
+Wiener admin configures Canvas with endpoint-level restrictions that differ from
+standard Canvas behavior. As of v0.4.0 the CLI detects these automatically and
+falls back to workarounds where possible.
+
+### Restriction signatures
+
+| Response | Meaning | CLI behavior |
+|----------|---------|--------------|
+| HTTP 200 or 403 + JSON `{errors:[{message:"usuario no autorizado para realizar esta acción"}]}` | Institutional endpoint block | Throws `WienerRestrictedError` (code: `wiener-restricted-endpoint`) — NOT a token problem |
+| HTTP 404 + HTML body (DOCTYPE) | Feature disabled for this course | Throws `WienerFeatureDisabledError` (code: `wiener-feature-disabled`) |
+| HTTP 401 + JSON error | Expired or invalid PAT | Throws `CanvasTokenInvalidError` (code: `canvas-not-configured`) |
+
+### Known restricted endpoints
+
+| Endpoint | Status | Automatic workaround |
+|----------|--------|---------------------|
+| `GET /api/v1/courses/{id}/files` | Blocked | `wiener archivos list` uses module items (`/modules?include[]=items`) instead |
+| `GET /api/v1/courses/{id}/files/{file_id}` | Blocked | `wiener archivos download` shows friendly error + instructs using URL from module item |
+| `GET /api/v1/courses/{id}/rubrics` | Restricted | Tareas info uses inline rubric from assignment endpoint — unaffected |
+
+### Endpoints that work normally
+
+`/assignments`, `/modules`, `/announcements`, `/submissions`, `/courses`,
+`/enrollments`, `/calendar_events`, `/conversations` — all confirmed working.
+
+### Feature-disabled courses
+
+`paginas`, `quizzes`, and `conferencias` are per-course features that instructors
+can disable. When disabled the API returns HTML 404. The CLI shows a friendly
+message and redirects to `wiener modulos <ref>` or `wiener tareas <ref>`.
+
+### Capability probing
+
+`wiener doctor` includes a capabilities matrix built via `probeCapabilities()`:
+
+```
+Capabilidades de la API Canvas
+  ✓  files           módulos como fuente alternativa
+  ✗  rubrics         restricted — usar inline rubric en assignments
+  ✓  anuncios        endpoint global (context_codes)
+  ✓  syllabus        include[]=syllabus_body en course details
+  -  pages           deshabilitado en este curso
+  ✓  quizzes
+  ✓  conferences
+```
+
+Results are cached 1h at `~/.wiener/<profile>/capabilities.json`.
+
 ## When NOT to use this CLI
 
 - **Paying tuition or trámite obligations** — generate the order with
