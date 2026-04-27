@@ -4,6 +4,8 @@ export type WienerErrorCode =
   | "auth-invalid-credentials"
   | "canvas-not-configured"
   | "canvas-token-invalid"
+  | "wiener-restricted-endpoint"
+  | "wiener-feature-disabled"
   | "course-not-found"
   | "course-ambiguous"
   | "network-error"
@@ -25,6 +27,8 @@ export const ERROR_EXIT_CODES: Record<WienerErrorCode, number> = {
   "auth-invalid-credentials": 1,
   "canvas-not-configured": 1,
   "canvas-token-invalid": 1,
+  "wiener-restricted-endpoint": 1,
+  "wiener-feature-disabled": 1,
   "course-not-found": 1,
   "course-ambiguous": 1,
   "network-error": 1,
@@ -96,10 +100,39 @@ export class CanvasNotConfiguredError extends WienerError {
 }
 
 export class CanvasTokenInvalidError extends WienerError {
-  constructor() {
-    super("canvas-token-invalid", "Canvas token rejected (401)", {
+  constructor(message?: string) {
+    super("canvas-token-invalid", message ?? "Canvas token rejected (401)", {
       hint: "Regenerate via `wiener auth canvas pat new`",
     });
+  }
+}
+
+export class WienerRestrictedError extends WienerError {
+  readonly path: string;
+  constructor(path: string, message?: string) {
+    super(
+      "wiener-restricted-endpoint",
+      message ?? `Wiener admin restricts this endpoint: ${path}`,
+      {
+        hint: "This endpoint is blocked at the institutional level — not a token problem. The CLI uses automatic workarounds where available.",
+      },
+    );
+    this.path = path;
+  }
+}
+
+export class WienerFeatureDisabledError extends WienerError {
+  readonly path: string;
+  constructor(path: string, feature?: string) {
+    const feat = feature ?? path.split("/").pop() ?? path;
+    super(
+      "wiener-feature-disabled",
+      `Esta funcionalidad no está habilitada en este curso: ${feat}`,
+      {
+        hint: "Prueba `wiener modulos <ref>` para ver el material organizado, o `wiener tareas <ref>` para evaluaciones.",
+      },
+    );
+    this.path = path;
   }
 }
 
